@@ -1,6 +1,8 @@
-# PSI_Cpp
+# Private Set Intersection (PSI) C++
 
 C++ port of the PSI protocol reference implementation. The project mirrors the JavaScript workflow (`reference/psiCalculation.js`) using OpenSSL, libsodium, and the Blake3 C implementation, while adding deterministic tests, CLI tooling, and an HTTP endpoint for UI integration.
+
+The previous version of the code (in JS) is included here, but also separately on GitHub: https://github.com/EdwardAThomson/psi-demo.
 
 ## Features
 - Hash-to-group, H2, ChaCha20-Poly1305, and Blake3-based random derivation aligned with the JS reference.
