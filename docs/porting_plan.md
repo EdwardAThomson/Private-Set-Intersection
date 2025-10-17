@@ -8,6 +8,7 @@ Recreate the PSI workflow implemented in `reference/psiCalculation.js` in modern
 - `psi_protocol.{h,cpp}` implements the PSI phases plus serialization helpers for both newline and JSON formats.
 - `psi_demo` (CLI) and `psi_server` (HTTP) exercise the protocol and expose JSON payloads ready for UI integration.
 - GoogleTest suite covers helpers, serialization formats, end-to-end PSI flows, and error paths (bad base64/JSON/headers).
+- React reference UI now targets the C++ `psi_server` over HTTP by default, falling back to the JS worker if the backend is unavailable.
 
 ## Dependency Checklist
 1. **OpenSSL** — already in use for curve operations.
