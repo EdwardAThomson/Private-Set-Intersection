@@ -10,3 +10,5 @@ archive/
 reports/
 *.log
 *.bak
+node_modules/
+reference_cpp_only/node_modules

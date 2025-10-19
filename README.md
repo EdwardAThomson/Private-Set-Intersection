@@ -75,5 +75,9 @@ async function runPsi(bobUnits, aliceUnits) {
 - `reports/progress_2025-10-16.md`: daily progress summary.
 - `docs/porting_plan.md`: roadmap, milestones, and API references.
 
+## Front-End Variants
+- `reference/`: legacy React demo with automatic JavaScript worker fallback.
+- `reference_cpp_only/`: cloned React demo that refuses to run without the C++ `psi_server` backend (JavaScript PSI implementation removed).
+
 ## Licenses
 Refer to upstream libraries for their respective licenses (OpenSSL, libsodium, Blake3 C implementation).

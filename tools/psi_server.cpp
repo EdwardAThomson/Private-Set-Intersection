@@ -219,6 +219,9 @@ std::string buildHttpResponse(const std::string& payload) {
     std::ostringstream oss;
     oss << "HTTP/1.1 200 OK\r\n"
         << "Content-Type: application/json\r\n"
+        << "Access-Control-Allow-Origin: *\r\n"
+        << "Access-Control-Allow-Headers: Content-Type\r\n"
+        << "Access-Control-Allow-Methods: POST, OPTIONS\r\n"
         << "Content-Length: " << payload.size() << "\r\n"
         << "Connection: close\r\n\r\n"
         << payload;
@@ -230,9 +233,23 @@ std::string buildErrorResponse(const std::string& message) {
     std::ostringstream oss;
     oss << "HTTP/1.1 400 Bad Request\r\n"
         << "Content-Type: application/json\r\n"
+        << "Access-Control-Allow-Origin: *\r\n"
+        << "Access-Control-Allow-Headers: Content-Type\r\n"
+        << "Access-Control-Allow-Methods: POST, OPTIONS\r\n"
         << "Content-Length: " << payload.size() << "\r\n"
         << "Connection: close\r\n\r\n"
         << payload;
+    return oss.str();
+}
+
+std::string buildOptionsResponse() {
+    std::ostringstream oss;
+    oss << "HTTP/1.1 204 No Content\r\n"
+        << "Access-Control-Allow-Origin: *\r\n"
+        << "Access-Control-Allow-Headers: Content-Type\r\n"
+        << "Access-Control-Allow-Methods: POST, OPTIONS\r\n"
+        << "Content-Length: 0\r\n"
+        << "Connection: close\r\n\r\n";
     return oss.str();
 }
 
@@ -276,15 +293,19 @@ void serveLoop(int serverFd) {
                 throw std::runtime_error("Malformed HTTP request");
             }
             auto requestLine = request.substr(0, requestLineEnd);
-            if (requestLine.find("POST /psi") != 0) {
+            if (requestLine.rfind("OPTIONS /psi", 0) == 0) {
+                response = buildOptionsResponse();
+            } else if (requestLine.find("POST /psi") != 0) {
                 throw std::runtime_error("Unsupported endpoint");
             }
-            auto headerEnd = request.find("\r\n\r\n");
-            if (headerEnd == std::string::npos) {
-                throw std::runtime_error("Missing headers terminator");
+            if (response.empty()) {
+                auto headerEnd = request.find("\r\n\r\n");
+                if (headerEnd == std::string::npos) {
+                    throw std::runtime_error("Missing headers terminator");
+                }
+                auto body = request.substr(headerEnd + 4);
+                response = buildHttpResponse(handlePsiRequest(body, env));
             }
-            auto body = request.substr(headerEnd + 4);
-            response = buildHttpResponse(handlePsiRequest(body, env));
         } catch (const std::exception& ex) {
             std::cerr << "Request error: " << ex.what() << '\n';
             response = buildErrorResponse(ex.what());
