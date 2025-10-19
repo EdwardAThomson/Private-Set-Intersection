@@ -1,5 +1,8 @@
 const DEFAULT_ENDPOINT = 'http://localhost:8080/psi';
 
+const createBackendWorker = () =>
+  new Worker(new URL('./backendFetchWorker.js', import.meta.url));
+
 const getConfiguredEndpoint = () => {
   if (typeof window !== 'undefined' && window.__PSI_SERVER_ENDPOINT__) {
     return window.__PSI_SERVER_ENDPOINT__;
@@ -119,12 +122,7 @@ const adaptServerResponse = (payload) => {
 
 export const runPSIInWorker = (bobUnits, aliceUnits, callbacks) => {
   const { onStart, onSuccess, onError } = callbacks || {};
-  const controller = new AbortController();
   let aborted = false;
-  let abortImpl = () => {
-    aborted = true;
-    controller.abort();
-  };
 
   if (onStart) onStart();
 
@@ -141,38 +139,70 @@ export const runPSIInWorker = (bobUnits, aliceUnits, callbacks) => {
 
   const endpoint = getConfiguredEndpoint();
 
-  fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal: controller.signal
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`PSI server responded with status ${response.status}`);
+  const worker = createBackendWorker();
+  let settled = false;
+
+  const cleanup = () => {
+    if (!settled) {
+      settled = true;
+      worker.terminate();
+    }
+  };
+
+  worker.onmessage = (event) => {
+    const { type, data, error } = event.data || {};
+    if (aborted) {
+      cleanup();
+      return;
+    }
+
+    if (type === 'success') {
+      try {
+        const adapted = adaptServerResponse(data);
+        if (onSuccess) onSuccess(adapted);
+      } catch (adaptError) {
+        const wrapped =
+          adaptError instanceof Error
+            ? adaptError
+            : new Error(String(adaptError));
+        if (onError) onError(wrapped);
       }
-      return response.json();
-    })
-    .then((data) => {
-      if (aborted) {
-        return;
-      }
-      const adapted = adaptServerResponse(data);
-      if (onSuccess) onSuccess(adapted);
-    })
-    .catch((error) => {
-      if (aborted || error.name === 'AbortError') {
-        return;
-      }
-      const wrapped = new Error(`PSI C++ server request failed: ${error.message || error}`);
-      wrapped.cause = error;
+      cleanup();
+    } else if (type === 'error') {
+      const wrapped = new Error(`PSI C++ server request failed: ${error}`);
       console.error('PSI C++ backend unavailable; no JS fallback in this build.');
       if (onError) onError(wrapped);
-    });
+      cleanup();
+    } else if (type === 'aborted') {
+      cleanup();
+    }
+  };
+
+  worker.onerror = (event) => {
+    if (aborted) {
+      cleanup();
+      return;
+    }
+    const message = event?.message || 'Worker error';
+    const wrapped = new Error(`PSI worker error: ${message}`);
+    if (onError) onError(wrapped);
+    cleanup();
+  };
+
+  worker.postMessage({
+    type: 'start',
+    endpoint,
+    payload
+  });
 
   return {
     abort: () => {
-      abortImpl();
+      if (settled) {
+        return;
+      }
+      aborted = true;
+      worker.postMessage({ type: 'abort' });
+      cleanup();
     }
   };
 };

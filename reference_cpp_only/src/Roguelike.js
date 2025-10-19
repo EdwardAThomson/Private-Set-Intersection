@@ -75,6 +75,7 @@ const Roguelike = () => {
   const [visibleCells, setVisibleCells] = useState([]);
   const [detectedMonsters, setDetectedMonsters] = useState([]);
   const [knownTerrain, setKnownTerrain] = useState({}); // Cells the player has seen
+  const [performanceInfo, setPerformanceInfo] = useState(null);
   
   // PSI processing state
   const [isPageActive, setIsPageActive] = useState(false);
@@ -125,6 +126,7 @@ const Roguelike = () => {
             console.log("PSI worker started for monster detection");
             // Add worker to tracking array after it's initialized
             activeWorkersRef.current.push(workerHandle);
+            setPerformanceInfo(null);
           },
           onSuccess: (data) => {
             if (!isMounted) return;
@@ -136,6 +138,16 @@ const Roguelike = () => {
             // Process the results
             const psiResults = data.results;
             console.log(`PSI found ${psiResults.length} intersections`);
+            if (data.performance) {
+              setPerformanceInfo({
+                total: data.performance.totalTime ?? null,
+                bobSetup: data.performance.bobSetupTime ?? null,
+                keyExchange: data.performance.keyExchangeTime ?? null,
+                finalize: data.performance.intersectionTime ?? null
+              });
+            } else {
+              setPerformanceInfo(null);
+            }
             
             // Convert result strings back to coordinates
             const detectedMonsterCells = psiResults.map(result => {
@@ -165,12 +177,14 @@ const Roguelike = () => {
             activeWorkersRef.current = activeWorkersRef.current.filter(w => w !== workerHandle);
             
             setProcessingStatus('error');
+            setPerformanceInfo(null);
           }
         });
       } catch (error) {
         if (!isMounted) return;
         console.error("Failed to start PSI worker:", error);
         setProcessingStatus('error');
+        setPerformanceInfo(null);
       }
     };
     
@@ -320,51 +334,100 @@ const Roguelike = () => {
   
   useEffect(() => {
     if (!isPageActive || processingStatus !== 'idle' || visibleCells.length === 0) return;
-    
+
     // Don't run PSI more than once per second
     const now = Date.now();
     if (now - lastRunRef.current < 500) return;
-    
+
     lastRunRef.current = now;
     runMonsterDetection();
   // eslint-disable-next-line
   }, [isPageActive, processingStatus, player.x, player.y]);
 
+  const statusClass =
+    processingStatus === 'processing'
+      ? 'status-processing'
+      : processingStatus === 'error'
+      ? 'status-error'
+      : 'status-idle';
+
+  const statusLabel =
+    processingStatus === 'error'
+      ? 'Error'
+      : performanceInfo
+      ? 'Ready'
+      : 'Processing';
+
   return (
     <div className="roguelike-container">
       <h1>PSI Roguelike Demo</h1>
       <div className="game-status">
-        <p>Use arrow keys or WASD to move</p>
-        <p>Position: ({player.x}, {player.y})</p>
-        <p>Visible monsters: {detectedMonsters.length}</p>
-        <p>PSI Status: <span style={{ 
-          color: processingStatus === 'idle' ? 'green' : 
-                 processingStatus === 'error' ? 'red' : 'orange' 
-        }}>
-          {processingStatus === 'processing' ? 'Scanning for monsters...' :
-           processingStatus === 'error' ? 'Error!' : 'Ready'}
-        </span></p>
-        {processingStatus === 'error' && (
-          <p style={{ color: '#b71c1c' }}>
-            C++ PSI server unreachable. This build does not include the JavaScript fallback.
+        <div className="status-panel">
+          <h3>Controls</h3>
+          <p className="status-text">Use arrow keys or WASD to move.</p>
+          <p className="status-text">PSI reveals monsters when they enter your visibility radius.</p>
+        </div>
+
+        <div className="status-panel">
+          <h3>Player</h3>
+          <div className="status-line">
+            <span>Position</span>
+            <span>({player.x}, {player.y})</span>
+          </div>
+          <div className="status-line">
+            <span>Visible monsters</span>
+            <span>{detectedMonsters.length}</span>
+          </div>
+        </div>
+
+        <div className="status-panel">
+          <h3>PSI Backend</h3>
+          <span className={`status-tag ${statusClass}`}>{statusLabel}</span>
+          <p className="status-text">
+            {processingStatus === 'error'
+              ? 'C++ PSI server unreachable. This build does not include the JavaScript fallback.'
+              : 'Backend timing metrics'}
           </p>
-        )}
-        {processingStatus === 'error' && (
-          <button
-            onClick={() => setProcessingStatus('idle')}
-            style={{
-              marginTop: '8px',
-              padding: '6px 12px',
-              borderRadius: '4px',
-              border: 'none',
-              backgroundColor: '#c62828',
-              color: '#fff',
-              cursor: 'pointer'
-            }}
-          >
-            Retry Connection
-          </button>
-        )}
+          <ul className="status-metrics">
+            <li>
+              <span>Total</span>
+              <span>
+                {performanceInfo && typeof performanceInfo.total === 'number'
+                  ? `${performanceInfo.total.toFixed(2)} ms`
+                  : '—'}
+              </span>
+            </li>
+            <li>
+              <span>Bob setup</span>
+              <span>
+                {performanceInfo && typeof performanceInfo.bobSetup === 'number'
+                  ? `${performanceInfo.bobSetup.toFixed(2)} ms`
+                  : '—'}
+              </span>
+            </li>
+            <li>
+              <span>Key exchange</span>
+              <span>
+                {performanceInfo && typeof performanceInfo.keyExchange === 'number'
+                  ? `${performanceInfo.keyExchange.toFixed(2)} ms`
+                  : '—'}
+              </span>
+            </li>
+            <li>
+              <span>Finalise</span>
+              <span>
+                {performanceInfo && typeof performanceInfo.finalize === 'number'
+                  ? `${performanceInfo.finalize.toFixed(2)} ms`
+                  : '—'}
+              </span>
+            </li>
+          </ul>
+          {processingStatus === 'error' && (
+            <button className="status-retry" onClick={() => setProcessingStatus('idle')}>
+              Retry Connection
+            </button>
+          )}
+        </div>
       </div>
       
       <Stage width={CANVAS_WIDTH} height={CANVAS_HEIGHT}>
