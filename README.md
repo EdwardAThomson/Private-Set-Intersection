@@ -4,12 +4,16 @@ C++ port of the PSI protocol reference implementation. The project mirrors the J
 
 The previous version of the code (in JS) is included here, but also separately on GitHub: https://github.com/EdwardAThomson/psi-demo.
 
+![Screenshot](Screenshot.png)
+
 ## Features
 - Hash-to-group, H2, ChaCha20-Poly1305, and Blake3-based random derivation aligned with the JS reference.
 - Phase-oriented PSI API (`psi_protocol`) with both newline and JSON serialization helpers.
 - `psi_demo`: CLI walkthrough of sample units, printing plaintext values, serialized payloads, and per-phase timings.
 - `psi_server`: HTTP service exposing `POST /psi`, returning JSON payloads and timing metrics ready for React integration.
 - GoogleTest suite covering helper behaviour, serialization round-trips, PSI flows, and error handling.
+- Multi-level grid encoding for visibility cells, mirroring the original JavaScript frontend.
+- Web Worker-friendly HTTP layer so browsers stay responsive while the PSI backend runs in C++.
 
 ## Building
 ```bash
