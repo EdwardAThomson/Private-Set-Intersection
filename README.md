@@ -26,9 +26,22 @@ cd build && ctest   # run tests
 ## Running the HTTP Server
 ```bash
 ./build/psi_server
-# listens on http://localhost:8080/psi (POST)
 ```
+
+# listens on http://localhost:8080/psi (POST)
+
 > Sandbox note: opening sockets is blocked in some restricted environments; run the server on an unrestricted machine.
+
+## Running the React Frontend
+1. Build or start `psi_server` from the repo root (see above).
+2. In a second terminal, launch the C++-only React demo:
+   ```bash
+   cd reference_cpp_only
+   npm install          # first time only
+   npm start
+   ```
+   The app opens at http://localhost:3000 and proxies PSI requests to `http://localhost:8080/psi`. To change the backend URL, set `REACT_APP_PSI_ENDPOINT` before running `npm start` or assign `window.__PSI_SERVER_ENDPOINT__` in `public/index.html`.
+3. The legacy JavaScript demo remains in `reference/` if you need the original worker-based fallback.
 
 ## HTTP API
 ### Request
@@ -77,7 +90,7 @@ async function runPsi(bobUnits, aliceUnits) {
 
 ## Front-End Variants
 - `reference/`: legacy React demo with automatic JavaScript worker fallback.
-- `reference_cpp_only/`: cloned React demo that refuses to run without the C++ `psi_server` backend (JavaScript PSI implementation removed).
+- `reference_cpp_only/`: C++-only React demo that forwards PSI requests through a lightweight Web Worker to the backend, exposes server timings in the UI, and refuses to fall back to the original browser implementation.
 
 ## Licenses
 Refer to upstream libraries for their respective licenses (OpenSSL, libsodium, Blake3 C implementation).

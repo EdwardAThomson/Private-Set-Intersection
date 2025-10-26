@@ -33,6 +33,6 @@ If the HTTP request fails (network error, non-2xx response, or user abort), the 
 ## C++-Only Verification UI
 - The `reference_cpp_only/` directory is a clone of the legacy frontend with the JavaScript PSI worker disabled.
 - The legacy `psiCalculation.js` module and worker scripts are removed, so no in-browser PSI implementation remains.
-- Every PSI request must succeed against `psi_server`; failures raise a visible “PSI C++ backend unreachable” banner and no results are computed.
+- Every PSI request runs through a dedicated Web Worker that posts to `psi_server`; failures raise a visible “PSI C++ backend unreachable” banner and no results are computed.
 - Run it the same way as the legacy app (`npm install`, then `npm start`). The endpoint defaults to `http://localhost:8080/psi`; override only if necessary via `window.__PSI_SERVER_ENDPOINT__` or `REACT_APP_PSI_ENDPOINT`.
 - Use this build when you need absolute certainty that the UI cannot silently fall back to the JS implementation.

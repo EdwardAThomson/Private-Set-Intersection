@@ -25,7 +25,7 @@ Here are a few of the technical Implementation choices that I made in this app.
 * ChaCha20 Stream Cipher
 * Blake3 hash function
 * Multi-level grid system
-* Web workers
+* Web worker wrapper for C++ API calls
 
 These were picked for their speed of operation or to otherwise reduce overheads. In the future I probably need to look to Wasm, or otherwise creating a desktop app.
 
@@ -34,28 +34,27 @@ I put together a page that explains more of the details of what PSI is and how i
 
 ## Using This App
 
+### Highlights
+- 100% of PSI processing happens on the C++ backend (`psi_server`).
+- A small Web Worker proxy handles HTTP calls so UI rendering/input stay responsive.
+- Both the visualization and roguelike demos surface backend timings directly in the UI.
+
 ### Home Page
 A demonstration of the protocol working. The units and visibility are static / simple points. Just hit the "Run" button. 
 
 ![PSI Protocol Demo](explanations/Home_Page_Screenshot_20241006.png)
 
 ### PSI Visualization
-This is a simple visualization of simple point particles moving around inside a box (Bob's units). The visibility circles are static but sweep out a 2D area unlike the test on the home page. The code is inefficient at the moment but it shows that the protocol works with dynamic movement. The PSI code triggers every 5 seconds and is very slow to calculate (**causes huge visualization lag**).
+This is a simple visualization of point particles moving inside a box (Bob's units). The visibility circles are static but sweep out a 2D area unlike the static test on the home page. PSI requests run continuously in the background and the Web Worker wrapper keeps the UI responsive.
 
-In order to boost performance, the app converts positions and visibility to cells, which are a coarser representation of the pixels. 1 cell is 50x50 pixels. Update (9th March): I added multi-level meshing and web workers to boost performance. While the performance is much better, it is still a bit slow.
-
-There are perhaps two main sources of inefficiency, one is that the app generates random values at every point in a secure yet inefficient way (the private key from a key pair), and secondly that the code has to decrypt all packets with every movement.
-
-The first can be solved by generating one random value then hashing it for the other points. The second may require reducing key size since the period of a game only requires secrecy for a few hours at most in an RTS. Slower games don't require fast visualization, so it would be fine to have such key-length redundancy (consider strategy games like Civilization).
+To reduce the amount of data shipped to the backend, the app converts positions and visibility to cells (1 cell is 50x50 pixels). When the C++ service responds it returns aggregate timings so you can see how long each phase took.
 
 ![PSI Visualization](explanations/PSI_Visualization_20241006.png)
 
 There are is a traditional visibility calculation that is helpful to calibrate what should be seen. You should really open the console log to check the results.
 
 ### Roguelike Demo
-I added a very simple demo game. It is a Roguelike where a player can move around a room to find monsters. Whenever a monster comes into the field of view, it will render only if the PSI calculation confirms it.
-
-The code doesn't have great performance but I believe it works.
+This variant keeps the original roguelike demo but pushes all PSI work through the C++ backend. A status panel shows the latest timings returned by the server while a Web Worker keeps the main thread free for rendering and input.
 
 ![PSI Roguelike](explanations/PSI_Roguelike_Screenshot_20250309_232639.png)
 
