@@ -186,10 +186,15 @@ std::vector<MatchedUnit> runPSIProtocol(const std::vector<Unit>& bobUnits,
 }
 
 BobInitialTagMessage bobCreateInitialTagMessage(const std::vector<Unit>& bobUnits) {
+    return bobCreateInitialTagMessageFromElements(convertToFlooredStrings(bobUnits));
+}
+
+BobInitialTagMessage bobCreateInitialTagMessageFromElements(
+    const std::vector<std::string>& elements) {
     BobInitialTagMessage message;
     message.state.privateScalar = randomScalar();
 
-    const auto bobPositions = convertToFlooredStrings(bobUnits);
+    const auto& bobPositions = elements;
     message.tags.reserve(bobPositions.size());
 
     for (const auto& position : bobPositions) {
@@ -206,9 +211,16 @@ BobInitialTagMessage bobCreateInitialTagMessage(const std::vector<Unit>& bobUnit
 
 AliceResponseMessage aliceProcessBobTagMessage(const std::string& serializedBobTagMessage,
                                                const std::vector<Unit>& aliceUnits) {
+    return aliceProcessBobTagMessageFromElements(serializedBobTagMessage,
+                                                 convertToFlooredStrings(aliceUnits));
+}
+
+AliceResponseMessage aliceProcessBobTagMessageFromElements(
+    const std::string& serializedBobTagMessage,
+    const std::vector<std::string>& elements) {
     AliceResponseMessage response;
     response.state.bobTags = deserializeBobTagMessage(serializedBobTagMessage);
-    response.state.flooredPositions = convertToFlooredStrings(aliceUnits);
+    response.state.flooredPositions = elements;
     aliceBlindPositions(response);
     return response;
 }

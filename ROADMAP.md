@@ -22,6 +22,10 @@ adding HTTP networking, deterministic tests, and timing instrumentation. See
       `psi_demo`, and the demo UI (2026-07-27)
 - [x] `psi_bench` tool comparing both modes; at 5,000 units/side tag-mode finalise is
       ~21x faster (see `reports/psi_bench_2026-07-27.md`)
+- [x] Multi-level mesh cascade (`src/mesh_psi.h`): coarse-to-fine tag-mode PSI over grid
+      cells with fresh keys and level domain separation per level; at 5,000 units/side
+      the cascade is ~1.8x faster than flat fine-grid PSI and sends ~46% fewer wire
+      bytes (`psi_mesh_bench`, `docs/mesh_cascade.md`) (2026-07-27)
 - [x] Both security fixes and tag mode ported to the JS demo
       ([psi-demo PR #1](https://github.com/EdwardAThomson/psi-demo/pull/1), 2026-07-27)
 - [x] Threat model documented in README (honest-but-curious)
