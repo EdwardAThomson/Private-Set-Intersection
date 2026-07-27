@@ -85,6 +85,9 @@ target_compile_definitions(blake3 PRIVATE
 )
 target_include_directories(blake3 PUBLIC ${PROJECT_SOURCE_DIR}/third_party/blake3)
 
+# Threads (std::thread used by the parallel per-element protocol loops)
+find_package(Threads REQUIRED)
+
 # libsodium discovery
 find_path(SODIUM_INCLUDE_DIR sodium.h)
 find_library(SODIUM_LIBRARY sodium)
@@ -98,11 +101,11 @@ target_include_directories(sodium_external INTERFACE ${SODIUM_INCLUDE_DIR})
 target_link_libraries(sodium_external INTERFACE ${SODIUM_LIBRARY})
 
 # Link libraries
-target_link_libraries(psi sodium_external blake3)
-target_link_libraries(psi_demo sodium_external blake3)
-target_link_libraries(psi_bench sodium_external blake3)
-target_link_libraries(psi_mesh_bench sodium_external blake3)
-target_link_libraries(psi_server sodium_external blake3)
+target_link_libraries(psi sodium_external blake3 Threads::Threads)
+target_link_libraries(psi_demo sodium_external blake3 Threads::Threads)
+target_link_libraries(psi_bench sodium_external blake3 Threads::Threads)
+target_link_libraries(psi_mesh_bench sodium_external blake3 Threads::Threads)
+target_link_libraries(psi_server sodium_external blake3 Threads::Threads)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTEST REQUIRED gtest_main)
@@ -131,7 +134,7 @@ target_link_libraries(psi_tests
         ${GTEST_LIBRARIES}
         sodium_external
         blake3
-        pthread
+        Threads::Threads
 )
 
 add_test(NAME psi_tests COMMAND psi_tests)

@@ -10,6 +10,7 @@
 #include <random>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <unordered_set>
 #include <vector>
 
@@ -99,11 +100,20 @@ PhaseTimes runSecretboxMode(const std::vector<Unit>& bobUnits, const std::vector
     return t;
 }
 
-PhaseTimes runTagMode(const std::vector<Unit>& bobUnits, const std::vector<Unit>& aliceUnits) {
+// Optional caches model each party's LOCAL hashToGroup cache. Bob's private
+// scalar is still generated fresh inside bobCreateInitialTagMessage on every
+// call: the cache never touches wire-visible values, as the security model
+// requires.
+PhaseTimes runTagMode(const std::vector<Unit>& bobUnits,
+                      const std::vector<Unit>& aliceUnits,
+                      HashToGroupCache* bobCache = nullptr,
+                      HashToGroupCache* aliceCache = nullptr) {
     PhaseTimes t;
-    const auto bobMessage = timed(t.bobSetupMs, [&]() { return bobCreateInitialTagMessage(bobUnits); });
-    const auto aliceMessage =
-        timed(t.aliceSetupMs, [&]() { return aliceProcessBobTagMessage(bobMessage.serialized, aliceUnits); });
+    const auto bobMessage =
+        timed(t.bobSetupMs, [&]() { return bobCreateInitialTagMessage(bobUnits, bobCache); });
+    const auto aliceMessage = timed(t.aliceSetupMs, [&]() {
+        return aliceProcessBobTagMessage(bobMessage.serialized, aliceUnits, aliceCache);
+    });
     const auto bobResponse = timed(t.bobResponseMs,
                                    [&]() { return bobProcessAliceMessage(aliceMessage.serialized, bobMessage.state); });
     const auto matched = timed(t.aliceFinalizeMs,
@@ -114,7 +124,7 @@ PhaseTimes runTagMode(const std::vector<Unit>& bobUnits, const std::vector<Unit>
 }
 
 void printRow(const std::string& mode, std::size_t size, const PhaseTimes& t, std::size_t expected) {
-    std::cout << "| " << std::setw(9) << mode
+    std::cout << "| " << std::setw(12) << mode
               << " | " << std::setw(6) << size
               << " | " << std::setw(10) << std::fixed << std::setprecision(2) << t.bobSetupMs
               << " | " << std::setw(11) << t.aliceSetupMs
@@ -124,6 +134,50 @@ void printRow(const std::string& mode, std::size_t size, const PhaseTimes& t, st
               << " | " << std::setw(11) << t.bobMessageBytes
               << " | " << std::setw(7) << t.intersections << "/" << expected
               << " |\n";
+}
+
+// Per-move scenario: a first full tag-mode exchange at this size warms each
+// party's local HashToGroupCache, then k of Bob's elements move and a FRESH
+// exchange runs (new private scalar, full tag recompute, as the security
+// model requires; only the local element-to-point cache carries over). The
+// cold row repeats the fresh exchange with no cache for comparison.
+void runPerMoveScenario(std::size_t size, const std::vector<std::size_t>& moveCounts) {
+    std::vector<Unit> bobUnits;
+    std::vector<Unit> aliceUnits;
+    std::size_t expected = 0;
+    makeUnits(size, bobUnits, aliceUnits, expected);
+
+    HashToGroupCache bobCache;
+    HashToGroupCache aliceCache;
+    // First full exchange: warms both local caches.
+    (void)runTagMode(bobUnits, aliceUnits, &bobCache, &aliceCache);
+
+    for (const auto k : moveCounts) {
+        if (k >= size - static_cast<std::size_t>(static_cast<double>(size) * kOverlapFraction)) {
+            continue;  // keep the expected overlap intact
+        }
+
+        // Move the last k of Bob's units (outside the overlap region) to
+        // guaranteed-fresh positions, simulating incremental movement.
+        auto movedBobUnits = bobUnits;
+        for (std::size_t i = 0; i < k; ++i) {
+            auto& unit = movedBobUnits[movedBobUnits.size() - 1 - i];
+            unit.x = static_cast<double>(2000000 + i);
+            unit.y = static_cast<double>(3000000 + i);
+        }
+
+        const auto cold = runTagMode(movedBobUnits, aliceUnits);
+        const auto warm = runTagMode(movedBobUnits, aliceUnits, &bobCache, &aliceCache);
+
+        const std::string label = "k=" + std::to_string(k);
+        printRow("mv-" + label + "-cold", size, cold, expected);
+        printRow("mv-" + label + "-warm", size, warm, expected);
+
+        if (cold.intersections != expected || warm.intersections != expected) {
+            throw std::runtime_error("per-move scenario mismatch at size " + std::to_string(size) +
+                                     " k " + std::to_string(k));
+        }
+    }
 }
 
 }  // namespace
@@ -142,10 +196,12 @@ int main(int argc, char** argv) {
         }
     }
 
+    const unsigned hardware = std::thread::hardware_concurrency();
     std::cout << "PSI benchmark: secretbox (trial decryption) vs tag (hash-set lookup)\n";
-    std::cout << "Overlap fraction: " << kOverlapFraction << ", timings in ms\n\n";
-    std::cout << "| mode      | size   | bob_setup  | alice_setup | bob_response | alice_final  | total     | bob_msg_B   | matches |\n";
-    std::cout << "|-----------|--------|------------|-------------|--------------|--------------|-----------|-------------|---------|\n";
+    std::cout << "Overlap fraction: " << kOverlapFraction << ", timings in ms, threads: "
+              << (hardware != 0 ? hardware : 1) << "\n\n";
+    std::cout << "| mode         | size   | bob_setup  | alice_setup | bob_response | alice_final  | total     | bob_msg_B   | matches |\n";
+    std::cout << "|--------------|--------|------------|-------------|--------------|--------------|-----------|-------------|---------|\n";
 
     try {
         for (const auto size : sizes) {
@@ -166,6 +222,15 @@ int main(int argc, char** argv) {
                           << ", tag " << tag.intersections << "\n";
                 return EXIT_FAILURE;
             }
+        }
+
+        std::cout << "\nPer-move scenario (tag mode): first exchange warms local HashToGroupCache,\n";
+        std::cout << "then k Bob elements move and a fresh exchange runs (new scalar, full tag\n";
+        std::cout << "recompute). warm rows reuse only the local hash cache; cold rows do not.\n\n";
+        std::cout << "| scenario     | size   | bob_setup  | alice_setup | bob_response | alice_final  | total     | bob_msg_B   | matches |\n";
+        std::cout << "|--------------|--------|------------|-------------|--------------|--------------|-----------|-------------|---------|\n";
+        for (const auto size : sizes) {
+            runPerMoveScenario(size, {2, 32});
         }
     } catch (const std::exception& ex) {
         std::cerr << "Benchmark failed: " << ex.what() << "\n";

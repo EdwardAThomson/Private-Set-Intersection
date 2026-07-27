@@ -73,6 +73,27 @@ TEST(CryptoUtilsTest, HashPointToKeyDiffersForDistinctPoints) {
     EXPECT_NE(key1, key2);
 }
 
+// The local hashToGroup cache must be a pure memoisation: byte-identical
+// output to the uncached call on both the miss path and the hit path, and a
+// null cache pointer must fall through to plain hashToGroup.
+TEST(CryptoUtilsTest, HashToGroupCachedMatchesUncached) {
+    ensureSodiumInit();
+
+    HashToGroupCache cache;
+    const std::string messages[] = {"1 3", "-6 7", "450 450", ""};
+
+    for (const auto& message : messages) {
+        const auto direct = hashToGroup(message);
+        const auto missPath = hashToGroupCached(message, &cache);
+        const auto hitPath = hashToGroupCached(message, &cache);
+
+        EXPECT_EQ(direct, missPath) << "cache miss diverged for: " << message;
+        EXPECT_EQ(direct, hitPath) << "cache hit diverged for: " << message;
+    }
+
+    EXPECT_EQ(hashToGroup("uncached"), hashToGroupCached("uncached", nullptr));
+}
+
 TEST(CryptoUtilsTest, Blake3DeriveKeyDiffersFromPlainHash) {
     ensureSodiumInit();
 
