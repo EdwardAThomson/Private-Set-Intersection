@@ -72,13 +72,18 @@ const adaptServerResponse = (payload) => {
   const bobItems = (payload.bob_message && payload.bob_message.items) || [];
   const aliceItems = (payload.alice_message && payload.alice_message.items) || [];
   const bobResponseItems = (payload.bob_response && payload.bob_response.items) || [];
-  const decrypted = Array.isArray(payload.decrypted) ? payload.decrypted : [];
+  // Current servers return "intersection"; older ones used "decrypted".
+  const intersection = Array.isArray(payload.intersection)
+    ? payload.intersection
+    : Array.isArray(payload.decrypted)
+      ? payload.decrypted
+      : [];
   const timings = payload.timings_ms || {};
 
   // Wire payloads intentionally carry no plaintext positions; only the
   // matched intersection below reveals shared cells. The server runs the
-  // protocol in tag mode, so Bob's items are membership tags; the ciphertext
-  // and nonce fields remain for older secretbox-mode responses.
+  // protocol in tag mode, so Bob's items are one-way membership tags; the
+  // ciphertext and nonce fields remain for older secretbox-mode responses.
   const bobValues = bobItems.map((item) => ({
     tag: item.tag,
     ciphertext: item.ciphertext,
@@ -93,7 +98,7 @@ const adaptServerResponse = (payload) => {
     transformedPoint: item.transformedPoint
   }));
 
-  const results = decrypted.map((unit) => ({ unit }));
+  const results = intersection.map((unit) => ({ unit }));
 
   const bobSetup = Number(timings.bob_setup || 0);
   const aliceSetup = Number(timings.alice_setup || 0);
@@ -114,8 +119,7 @@ const adaptServerResponse = (payload) => {
       keyExchangeTime: aliceSetup + bobResponse,
       intersectionTime: aliceFinalize,
       inverseOperations: 0,
-      decryptOperations: 0,
-      successfulDecryptions: results.length
+      matchesFound: results.length
     },
     rawResponse: payload,
     backend: 'psi_server_cpp'

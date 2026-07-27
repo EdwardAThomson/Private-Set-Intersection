@@ -93,7 +93,7 @@ int main() {
         return bobProcessAliceMessage(aliceMessage.serialized, bobMessage.state);
     });
 
-    const auto decrypted = measurePhase(timings.aliceFinalizeMs, [&]() {
+    const auto matches = measurePhase(timings.aliceFinalizeMs, [&]() {
         return aliceFinalizeIntersectionTags(bobResponse.serialized, aliceMessage.state);
     });
 
@@ -131,11 +131,11 @@ int main() {
     std::cout << "JSON payload: \n" << serializeBobTransformedMessageJson(bobResponse.values) << "\n";
 
     printHeader("Alice Finalisation");
-    if (decrypted.empty()) {
+    if (matches.empty()) {
         std::cout << "no intersections found\n";
     } else {
-        for (const auto& unit : decrypted) {
-            std::cout << "intersection: " << unit.plaintext << '\n';
+        for (const auto& unit : matches) {
+            std::cout << "intersection: " << unit.element << '\n';
         }
     }
 

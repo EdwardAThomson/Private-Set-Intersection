@@ -129,18 +129,18 @@ std::vector<Unit> parseUnits(const std::string& body, const std::string& key) {
 std::string buildResponseJson(const BobInitialTagMessage& bobMessage,
                               const AliceResponseMessage& aliceMessage,
                               const BobResponseMessage& bobResponse,
-                              const std::vector<DecryptedUnit>& decrypted,
+                              const std::vector<MatchedUnit>& matches,
                               const std::array<double, 4>& timingsMs) {
     std::ostringstream oss;
     oss << "{\"bob_message\":" << serializeBobTagMessageJson(bobMessage.tags)
         << ",\"alice_message\":" << serializeAliceBlindedMessageJson(aliceMessage.values)
         << ",\"bob_response\":" << serializeBobTransformedMessageJson(bobResponse.values)
-        << ",\"decrypted\":[";
-    for (std::size_t i = 0; i < decrypted.size(); ++i) {
+        << ",\"intersection\":[";
+    for (std::size_t i = 0; i < matches.size(); ++i) {
         if (i > 0) {
             oss << ',';
         }
-        oss << "\"" << decrypted[i].plaintext << "\"";
+        oss << "\"" << matches[i].element << "\"";
     }
     oss << "],\"timings_ms\":{\"bob_setup\":" << timingsMs[0]
         << ",\"alice_setup\":" << timingsMs[1]
@@ -178,14 +178,14 @@ std::string handlePsiRequest(const std::string& body) {
         return msg;
     }();
 
-    const auto decrypted = [&]() {
+    const auto matches = [&]() {
         const auto start = std::chrono::steady_clock::now();
         auto result = aliceFinalizeIntersectionTags(bobResponse.serialized, aliceMessage.state);
         timings[3] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
         return result;
     }();
 
-    return buildResponseJson(bobMessage, aliceMessage, bobResponse, decrypted, timings);
+    return buildResponseJson(bobMessage, aliceMessage, bobResponse, matches, timings);
 }
 
 std::string buildHttpResponse(const std::string& payload) {
