@@ -49,18 +49,26 @@ adding HTTP networking, deterministic tests, and timing instrumentation. See
 ## Backlog
 
 - [ ] WebAssembly or desktop variant to cut browser-call latency
-- [ ] Dispute-resolution protocol for malicious inputs. End-of-game position reveal
-      alone is insufficient: nothing binds PSI messages to revealed positions, so a
-      cheater can probe with fabricated inputs and reveal honest ones. Required
-      pieces: (1) hash commitment to input set + PRNG seed published before the
-      exchange, (2) all blinding scalars derived deterministically from the committed
-      seed (BLAKE3 `deriveRandomValues` already fits), (3) signed transcripts, so
-      (4) an after-the-fact audit can recompute every byte either party should have
-      sent, making a fabricated input attributable, punishable evidence. This is
-      deterrence, not prevention: the protocol stays private against
-      honest-but-curious parties; malicious probing becomes provable after the fact.
-      Inspiration: interactive verification / fraud-proof designs (Truebit, Cartesi,
-      Xaya game channels).
+- [ ] Dispute-resolution protocol for malicious inputs. The 2020 commit-and-replay
+      architecture (initial positions hashed on-chain, action log revealed at game
+      end, deterministic physics replay via Xaya channels/GSPs) verifies the game
+      state history, but does not by itself bind the PSI messages to that history:
+      a physics-honest player can still probe with fabricated PSI inputs. The fix is
+      to extend the reveal to the protocol randomness: (1) hash commitment to input
+      set + PRNG seed published before the exchange, (2) all blinding scalars derived
+      deterministically from the committed seed (BLAKE3 `deriveRandomValues` already
+      fits), (3) signed transcripts, so (4) an after-the-fact audit can recompute
+      every byte either party should have sent, making a fabricated input
+      attributable, punishable evidence. This is deterrence, not prevention.
+      See `docs/dispute_resolution_notes.md` for the design notes, including why the
+      audit is only sound now that hash-to-group has unknown discrete logs.
+      Provenance: commit-and-replay architecture from the 2020 blog post
+      ("Preventing cheaters in Fog Of War Games"); the seed-derivation formulation
+      of the PSI-transcript binding follows the security review by the
+      https://github.com/xaya/fog-of-war authors (who also reported issues #1 and
+      #2); verification-game inspiration: Truebit, Cartesi, Xaya game channels.
 - [ ] Pad input sets to a fixed size with dummy elements indistinguishable from real
-      ones, so set cardinality stops leaking from message length
+      ones, so set cardinality stops leaking from message length (suggested in the
+      same review by the xaya/fog-of-war authors; dummies should be derived from the
+      committed seed in a domain-separated namespace so they are auditable too)
 - [ ] Multi-dataset scalability testing (larger unit / visibility sets)
