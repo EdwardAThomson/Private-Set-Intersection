@@ -134,6 +134,26 @@ channel framework (Xaya channels use the chain's key scheme); binary vs current
 line-based serialization inside signed bodies (binary preferred before
 freezing, since the format becomes evidence).
 
+**Flight commitments as Merkle roots (channelized profile).** Where dispute
+evidence must be posted on-chain, the header additionally carries a Merkle
+root over the flight body, chunked per element:
+
+```
+leaf_i = H( domain || 0x00 || LE16(i) || chunk_i )
+node   = H( domain || 0x01 || left || right )
+```
+
+with the leaf index inside the preimage (an element cannot be replayed into a
+different slot) and a prefix byte separating leaves from interior nodes (the
+standard second-preimage defence). A challenge then proves one named element
+with a log-depth sibling path instead of shipping the whole flight; at
+`N_max = 256` that is a depth-9 path, on the order of 300 bytes rather than
+the flight's ~8 kB. Adopted from the Xaya blinded-sighting-test design (see
+References), which measured the same structure cutting a dispute from 4.2 kB
+to ~350 bytes. In the GSP-arbitrated profile this is unnecessary: the GSP is
+not gas-metered, evidence is an ordinary chain move, and the audit recomputes
+whole flights anyway, so the flat signed body suffices there.
+
 ## 6. Padding
 
 Every set at every level is padded to a fixed size `N_max(lvl)` with dummy
@@ -151,6 +171,23 @@ verifies both that they are present and that they are exactly the ones the seed
 dictates. `N_max` per level is a game parameter. **TBD:** values of `N_max`
 (bounds wire size and compute per turn; from `psi_bench`, 1,000 elements per
 side costs ~50 ms threaded, which suggests generous headroom is affordable).
+
+**Dummy derivation scope.** The derivation above is deliberately per-turn
+(`subseed(t, ...)`). The Xaya blinded-sighting-test derives its pad dummies
+from the match seed alone, round-independent, so a client can precompute
+every hash-to-group point it will ever need; per-round freshness comes
+entirely from the blinding scalar and the DDH argument is unchanged. That is
+sound in their setting because the seed is revealed only at the endgame
+audit, when the match is over. Here it would conflict with the single-turn
+opening property of section 4: the auditor must recompute dummies, so
+game-scoped dummies would be exposed by the first mid-game dispute and stay
+exposed for every remaining turn, weakening exactly the disclosure bound that
+per-turn seed binding buys. This spec therefore keeps per-turn dummies and
+takes the precompute win from the other end: every future turn's subseed is
+derivable from `k_P` at game start, so a client can hash future turns'
+dummies to the group during idle time (for example, the opponent's turn) and
+cache them (`HashToGroupCache`), reaching the same steady-state per-turn cost
+of ladders only.
 
 ## 7. Audit algorithm
 
@@ -239,3 +276,15 @@ dispute typically ends the game, so this is accepted rather than mitigated.
 - Bond and deposit sizing relative to the value of leaked information.
 - Whether the secretbox mode needs audit support at all, or the spec freezes
   tag mode only (current assumption: tag mode only).
+
+## References
+
+- Xaya Developers, *Fog of War without Zero-Knowledge Proofs: A Blinded
+  Mutual-Sighting Test for Trustless Game Channels*, July 2026. Paper and
+  reference implementation at
+  [xaya/fog-of-war](https://github.com/xaya/fog-of-war). The published form of
+  the security review behind this spec (see
+  `docs/dispute_resolution_notes.md`); it cites this repo as its engineering
+  starting point. The Merkle flight commitments (section 5) are adopted from
+  it, and the dummy-scope discussion (section 6) responds to its
+  round-independent pad derivation.
