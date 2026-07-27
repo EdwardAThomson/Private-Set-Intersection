@@ -39,7 +39,7 @@ TEST(PSIProtocolTest, FindsSingleIntersection) {
 
     const auto decrypted = aliceFinalizeIntersection(bobResponse.serialized, aliceMessage.state);
     ASSERT_EQ(1u, decrypted.size());
-    EXPECT_EQ("1 3", decrypted[0].plaintext);
+    EXPECT_EQ("1 3", decrypted[0].element);
 }
 
 TEST(PSIProtocolTest, HandlesNoIntersection) {
@@ -83,7 +83,7 @@ TEST(PSIProtocolTest, DeduplicatesMatchesByKey) {
     EXPECT_EQ(bobUnits.size(), bobMessage.units.size());
     EXPECT_EQ(aliceUnits.size(), aliceMessage.values.size());
     ASSERT_EQ(1u, decrypted.size());
-    EXPECT_EQ(flooredPosition(1.1, 2.2), decrypted[0].plaintext);
+    EXPECT_EQ(flooredPosition(1.1, 2.2), decrypted[0].element);
 }
 
 TEST(PSIProtocolTest, RunPSIProtocolEndToEnd) {
@@ -100,7 +100,7 @@ TEST(PSIProtocolTest, RunPSIProtocolEndToEnd) {
 
     const auto decrypted = runPSIProtocol(bobUnits, aliceUnits);
     ASSERT_EQ(1u, decrypted.size());
-    EXPECT_EQ(flooredPosition(450.0, 450.0), decrypted[0].plaintext);
+    EXPECT_EQ(flooredPosition(450.0, 450.0), decrypted[0].element);
 }
 
 // Wire messages must not leak either party's inputs: the transcript may only
@@ -154,7 +154,7 @@ TEST(PSIProtocolTagModeTest, FindsSameIntersectionAsSecretboxMode) {
 
     ASSERT_EQ(secretboxResults.size(), tagResults.size());
     for (std::size_t i = 0; i < tagResults.size(); ++i) {
-        EXPECT_EQ(secretboxResults[i].plaintext, tagResults[i].plaintext);
+        EXPECT_EQ(secretboxResults[i].element, tagResults[i].element);
     }
     ASSERT_EQ(2u, tagResults.size());
 }
@@ -182,7 +182,7 @@ TEST(PSIProtocolTagModeTest, DeduplicatesMatches) {
 
     const auto results = runPSIProtocolTags(bobUnits, aliceUnits);
     ASSERT_EQ(1u, results.size());
-    EXPECT_EQ(flooredPosition(1.1, 2.2), results[0].plaintext);
+    EXPECT_EQ(flooredPosition(1.1, 2.2), results[0].element);
 }
 
 TEST(PSIProtocolTagModeTest, WireMessagesDoNotContainPlaintextPositions) {

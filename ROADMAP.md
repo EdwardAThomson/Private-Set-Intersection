@@ -22,6 +22,8 @@ adding HTTP networking, deterministic tests, and timing instrumentation. See
       `psi_demo`, and the demo UI (2026-07-27)
 - [x] `psi_bench` tool comparing both modes; at 5,000 units/side tag-mode finalise is
       ~21x faster (see `reports/psi_bench_2026-07-27.md`)
+- [x] Both security fixes and tag mode ported to the JS demo
+      ([psi-demo PR #1](https://github.com/EdwardAThomson/psi-demo/pull/1), 2026-07-27)
 - [x] Threat model documented in README (honest-but-curious)
 - [x] 4-phase Bob/Alice protocol with explicit session state
 - [x] CLI demo (`psi_demo`) with base64 payloads + per-phase timing
@@ -58,5 +60,3 @@ adding HTTP networking, deterministic tests, and timing instrumentation. See
 - [ ] Pad input sets to a fixed size with dummy elements indistinguishable from real
       ones, so set cardinality stops leaking from message length
 - [ ] Multi-dataset scalability testing (larger unit / visibility sets)
-- [ ] Port the two security fixes to the JS demo (psi-demo repo), or mark it
-      visualisation-only

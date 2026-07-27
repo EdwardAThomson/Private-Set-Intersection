@@ -43,10 +43,10 @@ AliceResponseMessage aliceProcessBobMessage(const std::string& serializedBobMess
 BobResponseMessage bobProcessAliceMessage(const std::string& serializedAliceMessage,
                                           const BobSessionState& bobState);
 
-std::vector<DecryptedUnit> aliceFinalizeIntersection(const std::string& serializedBobResponse,
+std::vector<MatchedUnit> aliceFinalizeIntersection(const std::string& serializedBobResponse,
                                                      const AliceSessionState& aliceState);
 
-std::vector<DecryptedUnit> runPSIProtocol(const std::vector<Unit>& bobUnits,
+std::vector<MatchedUnit> runPSIProtocol(const std::vector<Unit>& bobUnits,
                                           const std::vector<Unit>& aliceUnits);
 
 // Tag mode: instead of encrypting each element under its derived key, Bob
@@ -66,10 +66,10 @@ BobInitialTagMessage bobCreateInitialTagMessage(const std::vector<Unit>& bobUnit
 AliceResponseMessage aliceProcessBobTagMessage(const std::string& serializedBobTagMessage,
                                                const std::vector<Unit>& aliceUnits);
 
-std::vector<DecryptedUnit> aliceFinalizeIntersectionTags(const std::string& serializedBobResponse,
+std::vector<MatchedUnit> aliceFinalizeIntersectionTags(const std::string& serializedBobResponse,
                                                          const AliceSessionState& aliceState);
 
-std::vector<DecryptedUnit> runPSIProtocolTags(const std::vector<Unit>& bobUnits,
+std::vector<MatchedUnit> runPSIProtocolTags(const std::vector<Unit>& bobUnits,
                                               const std::vector<Unit>& aliceUnits);
 
 #endif // PSI_PROTOCOL_H

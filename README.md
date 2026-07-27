@@ -2,7 +2,7 @@
 
 C++ port of the PSI protocol reference implementation, built on libsodium (ristretto255, XSalsa20-Poly1305) and the Blake3 C implementation, with deterministic tests, CLI tooling, and an HTTP endpoint for UI integration.
 
-The project follows the four-phase workflow of the JavaScript demo (`reference/psiCalculation.js`) but deliberately diverges from it cryptographically: the JS version hashes elements to the curve as `H(x)·G` (a known discrete log, which lets one participant enumerate the other's set offline) and sends plaintext elements alongside the blinded values. Both flaws are fixed here; see `docs/security_hardening.md`. The JS demo should be treated as a visualisation aid, not a secure implementation.
+The project follows the four-phase workflow of the JavaScript demo. Both implementations originally hashed elements to the curve as `H(x)·G` (a known discrete log, which lets one participant enumerate the other's set offline) and sent plaintext elements alongside the blinded values. Both flaws are fixed here (see `docs/security_hardening.md`), and the same fixes have been ported to the JS repo ([psi-demo PR #1](https://github.com/EdwardAThomson/psi-demo/pull/1)): both now use ristretto255 hash-to-group, membership tags, and plaintext-free wire messages. The legacy JS code bundled under `reference/` predates those fixes and remains a visualisation aid only.
 
 The previous version of the code (in JS) is included here, but also separately on GitHub: https://github.com/EdwardAThomson/psi-demo.
 
@@ -68,7 +68,7 @@ Content-Type: application/json
   "bob_message": {"items": [{"tag": "<base64>"}, ...]},
   "alice_message": {"items": [{"blindedPoint": "<base64>"}, ...]},
   "bob_response": {"items": [{"transformedPoint": "<base64>"}, ...]},
-  "decrypted": ["450 450", ...],
+  "intersection": ["450 450", ...],
   "timings_ms": {
     "bob_setup": <double>,
     "alice_setup": <double>,

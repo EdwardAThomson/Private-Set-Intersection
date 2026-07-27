@@ -22,7 +22,7 @@ The overall top-level strategy is outlined in a blog I wrote in June 2020: [Prev
 
 Here are a few of the technical Implementation choices that I made in this app.
 
-* ChaCha20 Stream Cipher
+* BLAKE3 membership tags (no encryption step; one-way tags replace the classical encrypt/decrypt round)
 * Blake3 hash function
 * Multi-level grid system
 * Web worker wrapper for C++ API calls
