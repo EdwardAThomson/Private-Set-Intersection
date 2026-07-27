@@ -525,14 +525,12 @@ const PSIVisualization = () => {
               <tr>
                 <td><strong>Inverse Operations:</strong></td>
                 <td>{performanceStats.inverseOperations}</td>
-                <td><strong>Decrypt Operations:</strong></td>
-                <td>{performanceStats.decryptOperations}</td>
+                <td><strong>Matches Found:</strong></td>
+                <td>{performanceStats.matchesFound}</td>
               </tr>
               <tr>
-                <td><strong>Successful Decryptions:</strong></td>
-                <td>{performanceStats.successfulDecryptions}</td>
                 <td><strong>Backend:</strong></td>
-                <td>{performanceStats.backend}</td>
+                <td colSpan="3">{performanceStats.backend}</td>
               </tr>
             </tbody>
           </table>

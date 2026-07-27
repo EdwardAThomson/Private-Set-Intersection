@@ -141,11 +141,11 @@ BobResponseMessage bobProcessAliceMessage(const std::string& serializedAliceMess
     return response;
 }
 
-std::vector<DecryptedUnit> aliceFinalizeIntersection(const std::string& serializedBobResponse,
+std::vector<MatchedUnit> aliceFinalizeIntersection(const std::string& serializedBobResponse,
                                                      const AliceSessionState& aliceState) {
     const auto transformedValues = deserializeBobTransformedMessage(serializedBobResponse);
 
-    std::vector<DecryptedUnit> results;
+    std::vector<MatchedUnit> results;
     results.reserve(transformedValues.size());
     std::unordered_set<std::string> usedKeys;
     usedKeys.reserve(transformedValues.size());
@@ -177,7 +177,7 @@ std::vector<DecryptedUnit> aliceFinalizeIntersection(const std::string& serializ
     return results;
 }
 
-std::vector<DecryptedUnit> runPSIProtocol(const std::vector<Unit>& bobUnits,
+std::vector<MatchedUnit> runPSIProtocol(const std::vector<Unit>& bobUnits,
                                           const std::vector<Unit>& aliceUnits) {
     auto bobMessage = bobCreateInitialMessage(bobUnits);
     auto aliceMessage = aliceProcessBobMessage(bobMessage.serialized, aliceUnits);
@@ -213,7 +213,7 @@ AliceResponseMessage aliceProcessBobTagMessage(const std::string& serializedBobT
     return response;
 }
 
-std::vector<DecryptedUnit> aliceFinalizeIntersectionTags(const std::string& serializedBobResponse,
+std::vector<MatchedUnit> aliceFinalizeIntersectionTags(const std::string& serializedBobResponse,
                                                          const AliceSessionState& aliceState) {
     const auto transformedValues = deserializeBobTransformedMessage(serializedBobResponse);
 
@@ -223,7 +223,7 @@ std::vector<DecryptedUnit> aliceFinalizeIntersectionTags(const std::string& seri
         bobTagSet.emplace(reinterpret_cast<const char*>(tag.data()), tag.size());
     }
 
-    std::vector<DecryptedUnit> results;
+    std::vector<MatchedUnit> results;
     std::unordered_set<std::string> matchedTags;
 
     for (std::size_t i = 0; i < transformedValues.size(); ++i) {
@@ -248,7 +248,7 @@ std::vector<DecryptedUnit> aliceFinalizeIntersectionTags(const std::string& seri
     return results;
 }
 
-std::vector<DecryptedUnit> runPSIProtocolTags(const std::vector<Unit>& bobUnits,
+std::vector<MatchedUnit> runPSIProtocolTags(const std::vector<Unit>& bobUnits,
                                               const std::vector<Unit>& aliceUnits) {
     auto bobMessage = bobCreateInitialTagMessage(bobUnits);
     auto aliceMessage = aliceProcessBobTagMessage(bobMessage.serialized, aliceUnits);

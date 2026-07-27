@@ -65,8 +65,8 @@ const RawCalculationDemo = () => {
     });
   };
 
-  // Helper function to format encrypted values
-  const formatEncryptedValue = (value) => {
+  // Helper function to format wire message entries
+  const formatWireValue = (value) => {
     const shorten = (text) => {
       const valueStr = String(text ?? '');
       return valueStr.length <= 24 ? valueStr : `${valueStr.slice(0, 12)}…${valueStr.slice(-6)}`;
@@ -97,7 +97,7 @@ const RawCalculationDemo = () => {
       if (value.transformedPoint) {
         parts.push(`transformed: ${shorten(value.transformedPoint)}`);
       }
-      return parts.length > 0 ? parts.join(' | ') : 'Encrypted payload';
+      return parts.length > 0 ? parts.join(' | ') : 'Wire payload';
     } else {
       return String(value ?? '');
     }
@@ -168,9 +168,8 @@ const RawCalculationDemo = () => {
             <li>Bob setup: {performanceStats.bobSetupTime?.toFixed?.(2) ?? 'n/a'}</li>
             <li>Key exchange (Alice setup + Bob response): {performanceStats.keyExchangeTime?.toFixed?.(2) ?? 'n/a'}</li>
             <li>Alice finalise: {performanceStats.intersectionTime?.toFixed?.(2) ?? 'n/a'}</li>
-            <li>Successful decryptions: {performanceStats.successfulDecryptions ?? 'n/a'}</li>
+            <li>Matches found: {performanceStats.matchesFound ?? 'n/a'}</li>
             <li>Inverse operations: {performanceStats.inverseOperations ?? 'n/a'}</li>
-            <li>Decrypt operations: {performanceStats.decryptOperations ?? 'n/a'}</li>
           </ul>
         </div>
       )}
@@ -201,7 +200,7 @@ const RawCalculationDemo = () => {
             ))}
           </ul>
           
-          <h3 style={{ color: '#2980b9', marginTop: '20px' }}>Encrypted Values</h3>
+          <h3 style={{ color: '#2980b9', marginTop: '20px' }}>Wire Messages (membership tags)</h3>
           {bobValues.length > 0 ? (
             <div style={{ 
               backgroundColor: '#eef2f7', 
@@ -211,7 +210,7 @@ const RawCalculationDemo = () => {
               overflowY: 'auto'
             }}>
               <p style={{ margin: '0 0 10px 0', fontStyle: 'italic', color: '#7f8c8d' }}>
-                {bobValues.length} values encrypted
+                {bobValues.length} values on the wire
               </p>
               {bobValues.slice(0, 5).map((value, index) => (
                 <div key={index} style={{ 
@@ -221,7 +220,7 @@ const RawCalculationDemo = () => {
                   borderRadius: '4px',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                 }}>
-                  {formatEncryptedValue(value)}
+                  {formatWireValue(value)}
                 </div>
               ))}
               {bobValues.length > 5 && (
@@ -232,7 +231,7 @@ const RawCalculationDemo = () => {
             </div>
           ) : (
             <p style={{ color: '#7f8c8d', fontStyle: 'italic' }}>
-              No encrypted values yet. Click "Run PSI Protocol".
+              No protocol messages yet. Click "Run PSI Protocol".
             </p>
           )}
         </div>
@@ -255,7 +254,7 @@ const RawCalculationDemo = () => {
             ))}
           </ul>
           
-          <h3 style={{ color: '#27ae60', marginTop: '20px' }}>Encrypted Values</h3>
+          <h3 style={{ color: '#27ae60', marginTop: '20px' }}>Wire Messages (blinded points)</h3>
           {aliceValues.length > 0 ? (
             <div style={{ 
               backgroundColor: '#eef7ee', 
@@ -265,7 +264,7 @@ const RawCalculationDemo = () => {
               overflowY: 'auto'
             }}>
               <p style={{ margin: '0 0 10px 0', fontStyle: 'italic', color: '#7f8c8d' }}>
-                {aliceValues.length} values encrypted
+                {aliceValues.length} values on the wire
               </p>
               {aliceValues.slice(0, 5).map((value, index) => (
                 <div key={index} style={{ 
@@ -275,7 +274,7 @@ const RawCalculationDemo = () => {
                   borderRadius: '4px',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                 }}>
-                  {formatEncryptedValue(value)}
+                  {formatWireValue(value)}
                 </div>
               ))}
               {aliceValues.length > 5 && (
@@ -286,7 +285,7 @@ const RawCalculationDemo = () => {
             </div>
           ) : (
             <p style={{ color: '#7f8c8d', fontStyle: 'italic' }}>
-              No encrypted values yet. Click "Run PSI Protocol".
+              No protocol messages yet. Click "Run PSI Protocol".
             </p>
           )}
         </div>

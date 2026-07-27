@@ -92,7 +92,7 @@ int main() {
         } else {
             std::cout << "Intersections:\n";
             for (const auto& unit : intersections) {
-                std::cout << "  - " << unit.plaintext << '\n';
+                std::cout << "  - " << unit.element << '\n';
             }
         }
 

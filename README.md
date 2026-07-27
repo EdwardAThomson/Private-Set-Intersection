@@ -68,7 +68,7 @@ Content-Type: application/json
   "bob_message": {"items": [{"tag": "<base64>"}, ...]},
   "alice_message": {"items": [{"blindedPoint": "<base64>"}, ...]},
   "bob_response": {"items": [{"transformedPoint": "<base64>"}, ...]},
-  "decrypted": ["450 450", ...],
+  "intersection": ["450 450", ...],
   "timings_ms": {
     "bob_setup": <double>,
     "alice_setup": <double>,

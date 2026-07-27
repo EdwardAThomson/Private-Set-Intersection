@@ -1,68 +1,59 @@
 # Private Set Intersection (PSI) Explanation page
 
 ## Private Set Intersection (PSI) Overview
-Private Set Intersection (PSI) is a cryptographic technique that allows two parties to find common elements in their datasets without revealing any non-matching items. This process ensures privacy, as neither party learns anything about the other’s data beyond the shared elements.
+Private Set Intersection (PSI) is a cryptographic technique that allows two parties to find common elements in their datasets without revealing any non-matching items. This process ensures privacy, as neither party learns anything about the other's data beyond the shared elements.
 
-In our example, Alice and Bob are both players in a mock RTS game. Each player has a set of units, and they want to determine if they have any common units without revealing the details of their armies to each other.
+In our example, Alice and Bob are both players in a mock RTS game. Each player has a set of units, and they want to determine if they have any common unit positions without revealing the details of their armies to each other.
 
 How It Works:
-1. **Key Exchange**: Alice and Bob begin by following a protocol that enables them to generate and exchange cryptographic keys. This is the foundation for ensuring the privacy of their data throughout the process.
+1. **Key Derivation**: Bob picks a private scalar. For each of his unit positions, he hashes the position onto the curve, multiplies by his private scalar, and derives a per-position symmetric key from the result.
 
-2. **Encrypting Units**: Alice encrypts her units using her key, and Bob does the same with his. After this, they swap their encrypted units. Even though they receive each other’s units, the encryption ensures that neither party can understand the data.
+2. **Membership Tags**: For every position, Bob sends a one-way *membership tag*: a hash of the derived key (BLAKE3 in derive-key mode). The tag reveals nothing about the position, and every tag is the same fixed size, so not even the length of an element leaks.
 
-3. **Intersection Identification**: Alice attempts to decrypt Bob's units using the key exchange protocol. If Bob’s unit is also present in Alice’s list, the decryption will reveal it. This is done without Alice learning any other details about Bob's remaining units, ensuring privacy is maintained.
+3. **Blinding and Exchange**: Alice hashes each of her positions onto the curve and blinds each one with an independent random scalar before sending them. Bob multiplies each blinded point by his private scalar and returns them. The blinding means Bob learns nothing about Alice's positions.
 
-By the end of this protocol, both Alice and Bob only know about the units they have in common, without exposing any other information.
+4. **Intersection Identification**: Alice unblinds each returned point, derives the same kind of key Bob derived, and hashes it into a tag. If her tag appears in Bob's list, that position is shared. She already knows which position it is: it is her own input at that index. Positions that are not shared produce tags that match nothing, and she can compute nothing further from them.
 
+By the end of this protocol, both Alice and Bob only know about the unit positions they have in common, without exposing any other information.
+
+The protocol is private against honest-but-curious participants. A malicious participant can probe membership by fabricating inputs; binding inputs to prior commitments (dispute resolution) is future work tracked in the repository roadmap.
 
 ## Protocol Details
 Here is a deeper dive into the protocol details. As it is a pain to copy and paste the text from ChatGPT, it is easier to provide a screenshot:
 
 ![PSI Protocol Deatails](psi_details.png)
 
+Note: the screenshot describes the classical formulation, in which Bob encrypts each position under its derived key and Alice trial-decrypts. This implementation uses membership tags instead (see below), which answer the same "do our keys match?" question with a single hash comparison.
 
 ## Key Concepts
 
 ### Concept of HashToGroup:
 In the research paper there is a hash function, **H1**, which is somewhat different from a regular hash function.
 
-**HashToGroup** typically means hashing an input (like a string or integer) to an element in a cryptographic group. In our case, the group is the elliptic curve group 𝐺, consisting of elliptic curve points.
+**HashToGroup** typically means hashing an input (like a string or integer) to an element in a cryptographic group. In our case, the group is ristretto255, a prime-order group built on Curve25519.
 
-The goal is to take some arbitrary input, like a string, and map it deterministically to a valid point on the elliptic curve. This is useful in protocols like the one we’re working on because you need inputs (like unit positions) to be represented as curve points for operations like scalar multiplication.
+The goal is to take some arbitrary input, like a string, and map it deterministically to a valid group element. This is useful in protocols like the one we're working on because you need inputs (like unit positions) to be represented as group elements for operations like scalar multiplication.
 
-HashToGroup is conceptually similar to HashToCurve, as seen in VRFs, but they are slightly different.
+One property is critical: nobody may know the discrete logarithm of the mapped point. Hashing to a *scalar* and multiplying the generator (`H(x)*G`) looks similar but is broken: the discrete log is then public, and one protocol run lets a participant recover enough information to enumerate the other party's entire set offline. This implementation uses `crypto_core_ristretto255_from_hash` (an Elligator 2 based map), which produces points with unknown discrete log.
 
 ### The H2 Function in the PSI Protocol (PSI Demo):
 
 **Purpose**
-The **H2** function in the PSI protocol is designed to map elliptic curve points to a fixed-size bit string (often used for encryption, MACs, or comparison purposes). This bit string could, for instance, be used as a symmetric key in an encryption scheme like AES or for hashing data in a PSI protocol.
-
-It doesn't generate a scalar like in your VRF code, but instead hashes an elliptic curve point (or some other data) to a string of bits.
+The **H2** function in the PSI protocol maps group elements to a fixed-size bit string, used here as the per-element symmetric key material from which the membership tag is derived.
 
 **Process**
-The input (which is often an elliptic curve point, or something derived from it) is hashed to a bit string (e.g., using SHA-256 or SHA-512). This bit string could then be used as a key, for example.
+The 32-byte canonical encoding of the group element is hashed with SHA-512 and truncated to 32 bytes.
 
+### Group Choice:
 
-### Elliptic Curve Choice:
+#### ristretto255
 
-#### p256
+This implementation uses [ristretto255](https://ristretto.group/), a prime-order group constructed over Curve25519. It avoids the cofactor pitfalls of raw Curve25519 and the trust concerns some cryptographers raise about the NIST curves (see [SafeCurves](https://safecurves.cr.yp.to/) by Daniel J. Bernstein and Tanja Lange). Earlier versions of this project used NIST P-256; the switch to ristretto255 came with the hash-to-group fix described above.
 
-Also known as prime256v1 or NIST P-256, this curve is part of the NIST (National Institute of Standards and Technology) recommended curves.
+### Membership tags instead of encryption:
 
-It is considered to be potentially backdoored by many professional cryptographers. It is fine for demonstration purposes, but may not be wise in a production setting (when you fear US government snooping).
+The classical protocol has Bob encrypt each position under its derived key; Alice tests membership by attempting decryption, since only a matching key opens the box. That works, but the plaintext inside is redundant (Alice can only ever decrypt a value she already holds) and trial decryption costs O(A x B) attempts.
 
+This implementation sends a **membership tag** instead: BLAKE3 in derive-key mode (context string `PSI-membership-tag-v1`) over the derived key. Alice recomputes tags for her own elements and checks membership in a hash set, which is O(A), and every wire entry is a fixed 32 bytes. Tag matching relies on collision resistance of the hash rather than the authenticity of a ciphertext; both give a negligible false-match probability.
 
-There is a website that digs into curve safety run by Daniel J. Bernstein and Tanja Lange: [SafeCurves: choosing safe curves for elliptic-curve cryptography](https://safecurves.cr.yp.to/).
-
-#### secp256k
-
-This curve is known for being used in Bitcoin, Ethereum and other cryptocurrencies. It's not part of the NIST family but was defined by SECG (Standards for Efficient Cryptography Group) in SEC 2.
-
-It has the same 128-bit security level as p256, but it's optimized for certain mathematical operations like elliptic curve multiplications, so should be more performant, which is why it's popular in the blockchain world.
-
-### Encrypting units via symmetric encryption:
-
-#### Stream Cipher ChaCha20
-Using a stream cipher like [ChaCha20](https://en.wikipedia.org/wiki/Salsa20) is an excellent choice for encrypting and decrypting data, as it’s fast, secure, and widely used in cryptographic systems. In the context of the PSI protocol, Bob will encrypt his unit positions, and Alice will attempt to decrypt the ciphertexts using the keys she calculates during the protocol.
-
-Block ciphers like AES are more heavyweight so are naturally slower than stream ciphers. For gaming, we need speed while being secure enough.
+BLAKE3 was chosen for the tag and for deterministic scalar derivation because it is fast, modern, and already part of the project. For gaming, we need speed while being secure enough.
