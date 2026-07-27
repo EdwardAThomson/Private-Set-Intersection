@@ -2,9 +2,7 @@
 
 C++ port of the PSI protocol reference implementation, built on libsodium (ristretto255, XSalsa20-Poly1305) and the Blake3 C implementation, with deterministic tests, CLI tooling, and an HTTP endpoint for UI integration.
 
-The project follows the four-phase workflow of the JavaScript demo. Both implementations originally hashed elements to the curve as `H(x)·G` (a known discrete log, which lets one participant enumerate the other's set offline) and sent plaintext elements alongside the blinded values. Both flaws are fixed here (see `docs/security_hardening.md`), and the same fixes have been ported to the JS repo ([psi-demo PR #1](https://github.com/EdwardAThomson/psi-demo/pull/1)): both now use ristretto255 hash-to-group, membership tags, and plaintext-free wire messages. The legacy JS code bundled under `reference/` predates those fixes and remains a visualisation aid only.
-
-The previous version of the code (in JS) is included here, but also separately on GitHub: https://github.com/EdwardAThomson/psi-demo.
+The project follows the same four-phase workflow as the JavaScript demo ([psi-demo](https://github.com/EdwardAThomson/psi-demo)), and the two implementations are kept in protocol parity: ristretto255 hash-to-group (unknown discrete log), one-way membership tags, and wire messages that carry no plaintext elements. The security analysis behind those choices is in `docs/security_hardening.md`. A legacy JS copy bundled under `reference/` predates them and is a visualisation aid only.
 
 ![Screenshot](Screenshot.png)
 
