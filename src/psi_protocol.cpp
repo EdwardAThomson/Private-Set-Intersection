@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "crypto_utils.h"
+#include "derivation.h"
 #include "position_utils.h"
 #include "random_utils.h"
 #include "serialization_utils.h"
@@ -87,20 +88,8 @@ void parallelForIndex(std::size_t count, Fn&& fn) {
     }
 }
 
-// Reduces a 32-byte derived value to a canonical non-zero ristretto255 scalar.
-RistrettoScalar scalarFromDerived(const std::array<unsigned char, 32>& input) {
-    unsigned char wide[64] = {0};
-    std::memcpy(wide, input.data(), input.size());
-
-    RistrettoScalar scalar{};
-    crypto_core_ristretto255_scalar_reduce(scalar.data(), wide);
-    sodium_memzero(wide, sizeof wide);
-
-    if (sodium_is_zero(scalar.data(), scalar.size())) {
-        scalar[0] = 1;
-    }
-    return scalar;
-}
+// scalarFromDerived now lives in derivation.h so the live protocol and the
+// dispute auditor share one reduction code path.
 
 RistrettoScalar randomScalar() {
     RistrettoScalar scalar{};
@@ -131,12 +120,18 @@ RistrettoPoint decodeWirePoint(const std::vector<unsigned char>& encoded, const 
 }
 
 // Fills Alice's blinding state and outgoing values; shared by both modes.
-// Alice's blinding scalars MUST stay fresh per run (they are: a new random
-// seed is drawn every call). The hash cache is safe because H(x) is only ever
-// sent multiplied by one of those fresh scalars.
-void aliceBlindPositions(AliceResponseMessage& response, HashToGroupCache* hashCache) {
-    std::array<unsigned char, 32> aliceSeed{};
-    randombytes_buf(aliceSeed.data(), aliceSeed.size());
+// Alice's blinding scalars MUST stay fresh per run. With the default
+// SystemRng a new random seed is drawn every call; with DeterministicRng the
+// seed is subseed(turn, level, dir, 1), which differs per exchange, so
+// freshness holds there too (docs/commit_reveal_spec.md, section 3). The hash
+// cache is safe because H(x) is only ever sent multiplied by one of those
+// fresh scalars.
+void aliceBlindPositions(AliceResponseMessage& response,
+                         HashToGroupCache* hashCache,
+                         ProtocolRng* rng = nullptr) {
+    SystemRng systemRng;
+    ProtocolRng& randomness = (rng != nullptr) ? *rng : systemRng;
+    const std::array<unsigned char, 32> aliceSeed = randomness.aliceBlindingSeed();
     // Serial by design: seed generation and the chained derivation both touch
     // randombytes/sequential state. Only the pure per-element math below is
     // parallelised.
@@ -287,13 +282,15 @@ std::vector<MatchedUnit> runPSIProtocol(const std::vector<Unit>& bobUnits,
 }
 
 BobInitialTagMessage bobCreateInitialTagMessage(const std::vector<Unit>& bobUnits,
-                                                HashToGroupCache* hashCache) {
-    return bobCreateInitialTagMessageFromElements(convertToFlooredStrings(bobUnits), hashCache);
+                                                HashToGroupCache* hashCache,
+                                                ProtocolRng* rng) {
+    return bobCreateInitialTagMessageFromElements(convertToFlooredStrings(bobUnits), hashCache, rng);
 }
 
 BobInitialTagMessage bobCreateInitialTagMessageFromElements(
     const std::vector<std::string>& elements,
-    HashToGroupCache* hashCache) {
+    HashToGroupCache* hashCache,
+    ProtocolRng* rng) {
     BobInitialTagMessage message;
     // SECURITY: fresh scalar per exchange, same reasoning as
     // bobCreateInitialMessage. In tag mode this matters even more: with a
@@ -301,8 +298,11 @@ BobInitialTagMessage bobCreateInitialTagMessageFromElements(
     // counterparty can count changed elements between runs and permanently
     // re-identify any element that ever appeared in the intersection. Tags
     // must therefore be fully recomputed every exchange; only the local
-    // hashToGroup cache (never wire-visible) may be reused.
-    message.state.privateScalar = randomScalar();
+    // hashToGroup cache (never wire-visible) may be reused. DeterministicRng
+    // preserves freshness because its subseed differs per turn/level/dir.
+    SystemRng systemRng;
+    ProtocolRng& randomness = (rng != nullptr) ? *rng : systemRng;
+    message.state.privateScalar = randomness.bobPrivateScalar();
 
     const auto& bobPositions = elements;
     const std::size_t count = bobPositions.size();
@@ -321,19 +321,22 @@ BobInitialTagMessage bobCreateInitialTagMessageFromElements(
 
 AliceResponseMessage aliceProcessBobTagMessage(const std::string& serializedBobTagMessage,
                                                const std::vector<Unit>& aliceUnits,
-                                               HashToGroupCache* hashCache) {
+                                               HashToGroupCache* hashCache,
+                                               ProtocolRng* rng) {
     return aliceProcessBobTagMessageFromElements(serializedBobTagMessage,
-                                                 convertToFlooredStrings(aliceUnits), hashCache);
+                                                 convertToFlooredStrings(aliceUnits), hashCache,
+                                                 rng);
 }
 
 AliceResponseMessage aliceProcessBobTagMessageFromElements(
     const std::string& serializedBobTagMessage,
     const std::vector<std::string>& elements,
-    HashToGroupCache* hashCache) {
+    HashToGroupCache* hashCache,
+    ProtocolRng* rng) {
     AliceResponseMessage response;
     response.state.bobTags = deserializeBobTagMessage(serializedBobTagMessage);
     response.state.flooredPositions = elements;
-    aliceBlindPositions(response, hashCache);
+    aliceBlindPositions(response, hashCache, rng);
     return response;
 }
 

@@ -19,6 +19,7 @@ set(SOURCE_FILES
     src/random_utils.cpp
     src/position_utils.cpp
     src/psi_protocol.cpp
+    src/derivation.cpp
     src/mesh_psi.cpp
     src/serialization_utils.cpp
 )
@@ -29,6 +30,7 @@ add_executable(psi ${SOURCE_FILES})
 add_executable(psi_demo
     tools/psi_demo.cpp
     src/psi_protocol.cpp
+    src/derivation.cpp
     src/position_utils.cpp
     src/random_utils.cpp
     src/crypto_utils.cpp
@@ -40,6 +42,7 @@ add_executable(psi_demo
 add_executable(psi_bench
     tools/psi_bench.cpp
     src/psi_protocol.cpp
+    src/derivation.cpp
     src/position_utils.cpp
     src/random_utils.cpp
     src/crypto_utils.cpp
@@ -52,6 +55,7 @@ add_executable(psi_mesh_bench
     tools/psi_mesh_bench.cpp
     src/mesh_psi.cpp
     src/psi_protocol.cpp
+    src/derivation.cpp
     src/position_utils.cpp
     src/random_utils.cpp
     src/crypto_utils.cpp
@@ -60,9 +64,37 @@ add_executable(psi_mesh_bench
     src/serialization_utils.cpp
 )
 
+# Commit-reveal dispute layer, phase 1 (docs/commit_reveal_spec.md section 9):
+# deterministic derivation, signed transcript container, recorded session and
+# the audit shared by psi_audit and the tests.
+set(DISPUTE_SOURCE_FILES
+    src/derivation.cpp
+    src/transcript.cpp
+    src/session.cpp
+    src/audit.cpp
+    src/psi_protocol.cpp
+    src/position_utils.cpp
+    src/random_utils.cpp
+    src/crypto_utils.cpp
+    src/secretbox_utils.cpp
+    src/blake3_utils.cpp
+    src/serialization_utils.cpp
+)
+
+add_executable(psi_audit
+    tools/psi_audit.cpp
+    ${DISPUTE_SOURCE_FILES}
+)
+
+add_executable(psi_session
+    tools/psi_session.cpp
+    ${DISPUTE_SOURCE_FILES}
+)
+
 add_executable(psi_server
     tools/psi_server.cpp
     src/psi_protocol.cpp
+    src/derivation.cpp
     src/position_utils.cpp
     src/random_utils.cpp
     src/crypto_utils.cpp
@@ -105,6 +137,8 @@ target_link_libraries(psi sodium_external blake3 Threads::Threads)
 target_link_libraries(psi_demo sodium_external blake3 Threads::Threads)
 target_link_libraries(psi_bench sodium_external blake3 Threads::Threads)
 target_link_libraries(psi_mesh_bench sodium_external blake3 Threads::Threads)
+target_link_libraries(psi_audit sodium_external blake3 Threads::Threads)
+target_link_libraries(psi_session sodium_external blake3 Threads::Threads)
 target_link_libraries(psi_server sodium_external blake3 Threads::Threads)
 
 find_package(PkgConfig REQUIRED)
@@ -117,12 +151,17 @@ set(TEST_SOURCES
     tests/psi_protocol_test.cpp
     tests/mesh_psi_test.cpp
     tests/serialization_utils_test.cpp
+    tests/audit_test.cpp
+    src/transcript.cpp
+    src/session.cpp
+    src/audit.cpp
     src/crypto_utils.cpp
     src/secretbox_utils.cpp
     src/blake3_utils.cpp
     src/random_utils.cpp
     src/position_utils.cpp
     src/psi_protocol.cpp
+    src/derivation.cpp
     src/mesh_psi.cpp
     src/serialization_utils.cpp
 )

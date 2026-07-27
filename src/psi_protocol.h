@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "crypto_utils.h"
+#include "derivation.h"
 #include "psi_types.h"
 
 struct BobSessionState {
@@ -64,6 +65,14 @@ std::vector<MatchedUnit> runPSIProtocol(const std::vector<Unit>& bobUnits,
 // secretbox mode; only phase 1 and Alice's finalisation differ. Finalisation
 // is O(|Alice|) set lookups instead of O(|Alice| x |Bob|) trial decryptions,
 // and tags are fixed 32 bytes, so no element-length information leaks.
+//
+// The optional ProtocolRng parameter (derivation.h) selects where the
+// per-exchange randomness comes from. nullptr keeps the current behaviour
+// (system randomness), so existing callers are unchanged. DeterministicRng is
+// the OPT-IN derivation mode of the commit-reveal dispute protocol
+// (docs/commit_reveal_spec.md, sections 3 and 9); the fresh-scalar invariant
+// still holds there because the seed differs per turn, level and direction.
+// Only tag mode takes the parameter: the dispute spec freezes tag mode.
 
 struct BobInitialTagMessage {
     BobSessionState state;
@@ -72,11 +81,13 @@ struct BobInitialTagMessage {
 };
 
 BobInitialTagMessage bobCreateInitialTagMessage(const std::vector<Unit>& bobUnits,
-                                                HashToGroupCache* hashCache = nullptr);
+                                                HashToGroupCache* hashCache = nullptr,
+                                                ProtocolRng* rng = nullptr);
 
 AliceResponseMessage aliceProcessBobTagMessage(const std::string& serializedBobTagMessage,
                                                const std::vector<Unit>& aliceUnits,
-                                               HashToGroupCache* hashCache = nullptr);
+                                               HashToGroupCache* hashCache = nullptr,
+                                               ProtocolRng* rng = nullptr);
 
 std::vector<MatchedUnit> aliceFinalizeIntersectionTags(const std::string& serializedBobResponse,
                                                          const AliceSessionState& aliceState);
@@ -93,11 +104,13 @@ std::vector<MatchedUnit> runPSIProtocolTags(const std::vector<Unit>& bobUnits,
 // each call still draws a completely fresh Bob scalar / Alice blinding.
 BobInitialTagMessage bobCreateInitialTagMessageFromElements(
     const std::vector<std::string>& elements,
-    HashToGroupCache* hashCache = nullptr);
+    HashToGroupCache* hashCache = nullptr,
+    ProtocolRng* rng = nullptr);
 
 AliceResponseMessage aliceProcessBobTagMessageFromElements(
     const std::string& serializedBobTagMessage,
     const std::vector<std::string>& elements,
-    HashToGroupCache* hashCache = nullptr);
+    HashToGroupCache* hashCache = nullptr,
+    ProtocolRng* rng = nullptr);
 
 #endif // PSI_PROTOCOL_H
