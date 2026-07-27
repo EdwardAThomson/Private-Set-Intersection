@@ -1,18 +1,14 @@
 #ifndef PSI_PROTOCOL_H
 #define PSI_PROTOCOL_H
 
-#include <array>
 #include <string>
 #include <vector>
 
+#include "crypto_utils.h"
 #include "psi_types.h"
 
-extern "C" {
-#include <openssl/ec.h>
-}
-
 struct BobSessionState {
-    std::array<unsigned char, 32> privateScalar;
+    RistrettoScalar privateScalar;
 };
 
 struct BobInitialMessage {
@@ -22,8 +18,9 @@ struct BobInitialMessage {
 };
 
 struct AliceSessionState {
-    std::vector<EncryptedUnit> bobEncryptedUnits;
-    std::vector<std::array<unsigned char, 32>> randomScalars;
+    std::vector<EncryptedUnit> bobEncryptedUnits;  // secretbox mode
+    std::vector<MembershipTag> bobTags;            // tag mode
+    std::vector<RistrettoScalar> randomScalars;
     std::vector<std::string> flooredPositions;
 };
 
@@ -38,28 +35,41 @@ struct BobResponseMessage {
     std::string serialized;
 };
 
-BobInitialMessage bobCreateInitialMessage(const std::vector<Unit>& bobUnits,
-                                          EC_GROUP* group,
-                                          BN_CTX* ctx);
+BobInitialMessage bobCreateInitialMessage(const std::vector<Unit>& bobUnits);
 
 AliceResponseMessage aliceProcessBobMessage(const std::string& serializedBobMessage,
-                                            const std::vector<Unit>& aliceUnits,
-                                            EC_GROUP* group,
-                                            BN_CTX* ctx);
+                                            const std::vector<Unit>& aliceUnits);
 
 BobResponseMessage bobProcessAliceMessage(const std::string& serializedAliceMessage,
-                                          const BobSessionState& bobState,
-                                          EC_GROUP* group,
-                                          BN_CTX* ctx);
+                                          const BobSessionState& bobState);
 
 std::vector<DecryptedUnit> aliceFinalizeIntersection(const std::string& serializedBobResponse,
-                                                     const AliceSessionState& aliceState,
-                                                     EC_GROUP* group,
-                                                     BN_CTX* ctx);
+                                                     const AliceSessionState& aliceState);
 
 std::vector<DecryptedUnit> runPSIProtocol(const std::vector<Unit>& bobUnits,
-                                          const std::vector<Unit>& aliceUnits,
-                                          EC_GROUP* group,
-                                          BN_CTX* ctx);
+                                          const std::vector<Unit>& aliceUnits);
+
+// Tag mode: instead of encrypting each element under its derived key, Bob
+// sends a one-way membership tag of the key. Phases 2 and 3 are identical to
+// secretbox mode; only phase 1 and Alice's finalisation differ. Finalisation
+// is O(|Alice|) set lookups instead of O(|Alice| x |Bob|) trial decryptions,
+// and tags are fixed 32 bytes, so no element-length information leaks.
+
+struct BobInitialTagMessage {
+    BobSessionState state;
+    std::vector<MembershipTag> tags;
+    std::string serialized;
+};
+
+BobInitialTagMessage bobCreateInitialTagMessage(const std::vector<Unit>& bobUnits);
+
+AliceResponseMessage aliceProcessBobTagMessage(const std::string& serializedBobTagMessage,
+                                               const std::vector<Unit>& aliceUnits);
+
+std::vector<DecryptedUnit> aliceFinalizeIntersectionTags(const std::string& serializedBobResponse,
+                                                         const AliceSessionState& aliceState);
+
+std::vector<DecryptedUnit> runPSIProtocolTags(const std::vector<Unit>& bobUnits,
+                                              const std::vector<Unit>& aliceUnits);
 
 #endif // PSI_PROTOCOL_H

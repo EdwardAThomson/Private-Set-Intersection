@@ -93,7 +93,6 @@ std::string serializeBobEncryptedMessage(const std::vector<EncryptedUnit>& units
     ensureSodiumInitLocal();
     auto writer = [&units](std::ostringstream& oss) {
         for (const auto& unit : units) {
-            oss << unit.flooredPosition << "\n";
             oss << base64Encode(unit.ciphertext.ciphertext) << "\n";
             oss << base64Encode(unit.ciphertext.nonce) << "\n";
         }
@@ -109,18 +108,17 @@ std::vector<EncryptedUnit> deserializeBobEncryptedMessage(const std::string& dat
     std::vector<EncryptedUnit> units;
     units.reserve(count);
     for (std::size_t i = 0; i < count; ++i) {
-        const std::string position = readLine(stream);
         const std::string ciphertextB64 = readLine(stream);
         const std::string nonceB64 = readLine(stream);
 
-        ChaChaCiphertext payload;
+        SecretBoxCiphertext payload;
         payload.ciphertext = base64DecodeVector(ciphertextB64);
         auto nonceVec = base64DecodeVector(nonceB64);
         if (nonceVec.size() != crypto_secretbox_NONCEBYTES) {
             throw std::runtime_error("Invalid nonce length in message");
         }
         std::copy(nonceVec.begin(), nonceVec.end(), payload.nonce.begin());
-        units.push_back({position, std::move(payload)});
+        units.push_back({std::move(payload)});
     }
     return units;
 }
@@ -129,7 +127,6 @@ std::string serializeAliceBlindedMessage(const std::vector<AliceSentValue>& valu
     ensureSodiumInitLocal();
     auto writer = [&values](std::ostringstream& oss) {
         for (const auto& value : values) {
-            oss << value.flooredPosition << "\n";
             oss << base64Encode(value.blindedPointEncoded) << "\n";
         }
     };
@@ -145,7 +142,6 @@ std::vector<AliceSentValue> deserializeAliceBlindedMessage(const std::string& da
     values.reserve(count);
     for (std::size_t i = 0; i < count; ++i) {
         AliceSentValue value;
-        value.flooredPosition = readLine(stream);
         const std::string encodedPoint = readLine(stream);
         value.blindedPointEncoded = base64DecodeVector(encodedPoint);
         values.push_back(std::move(value));
@@ -157,7 +153,6 @@ std::string serializeBobTransformedMessage(const std::vector<BobTransformedValue
     ensureSodiumInitLocal();
     auto writer = [&values](std::ostringstream& oss) {
         for (const auto& value : values) {
-            oss << value.flooredPosition << "\n";
             oss << base64Encode(value.transformedPointEncoded) << "\n";
         }
     };
@@ -173,12 +168,34 @@ std::vector<BobTransformedValue> deserializeBobTransformedMessage(const std::str
     values.reserve(count);
     for (std::size_t i = 0; i < count; ++i) {
         BobTransformedValue value;
-        value.flooredPosition = readLine(stream);
         const std::string encodedPoint = readLine(stream);
         value.transformedPointEncoded = base64DecodeVector(encodedPoint);
         values.push_back(std::move(value));
     }
     return values;
+}
+
+std::string serializeBobTagMessage(const std::vector<std::array<unsigned char, 32>>& tags) {
+    ensureSodiumInitLocal();
+    auto writer = [&tags](std::ostringstream& oss) {
+        for (const auto& tag : tags) {
+            oss << base64Encode(tag) << "\n";
+        }
+    };
+    return serializeGeneric('T', writer, tags.size());
+}
+
+std::vector<std::array<unsigned char, 32>> deserializeBobTagMessage(const std::string& data) {
+    ensureSodiumInitLocal();
+    std::istringstream stream(data);
+    expectHeader(stream, 'T');
+    const std::size_t count = readCount(stream);
+    std::vector<std::array<unsigned char, 32>> tags;
+    tags.reserve(count);
+    for (std::size_t i = 0; i < count; ++i) {
+        tags.push_back(base64DecodeArray<32>(readLine(stream)));
+    }
+    return tags;
 }
 
 namespace {
@@ -318,8 +335,7 @@ std::string serializeBobEncryptedMessageJson(const std::vector<EncryptedUnit>& u
     objects.reserve(units.size());
     for (const auto& unit : units) {
         std::ostringstream oss;
-        oss << "{\"position\":\"" << escapeJson(unit.flooredPosition)
-            << "\",\"ciphertext\":\"" << escapeJson(base64Encode(unit.ciphertext.ciphertext))
+        oss << "{\"ciphertext\":\"" << escapeJson(base64Encode(unit.ciphertext.ciphertext))
             << "\",\"nonce\":\"" << escapeJson(base64Encode(unit.ciphertext.nonce)) << "\"}";
         objects.push_back(oss.str());
     }
@@ -332,7 +348,6 @@ std::vector<EncryptedUnit> deserializeBobEncryptedMessageJson(const std::string&
     units.reserve(objects.size());
     for (const auto& obj : objects) {
         EncryptedUnit unit;
-        unit.flooredPosition = extractJsonValue(obj, "position");
         auto cipherB64 = extractJsonValue(obj, "ciphertext");
         auto nonceB64 = extractJsonValue(obj, "nonce");
         unit.ciphertext.ciphertext = base64DecodeVector(cipherB64);
@@ -351,8 +366,7 @@ std::string serializeAliceBlindedMessageJson(const std::vector<AliceSentValue>& 
     objects.reserve(values.size());
     for (const auto& value : values) {
         std::ostringstream oss;
-        oss << "{\"position\":\"" << escapeJson(value.flooredPosition)
-            << "\",\"blindedPoint\":\"" << escapeJson(base64Encode(value.blindedPointEncoded)) << "\"}";
+        oss << "{\"blindedPoint\":\"" << escapeJson(base64Encode(value.blindedPointEncoded)) << "\"}";
         objects.push_back(oss.str());
     }
     return wrapJsonArray(objects);
@@ -364,7 +378,6 @@ std::vector<AliceSentValue> deserializeAliceBlindedMessageJson(const std::string
     values.reserve(objects.size());
     for (const auto& obj : objects) {
         AliceSentValue value;
-        value.flooredPosition = extractJsonValue(obj, "position");
         auto encoded = extractJsonValue(obj, "blindedPoint");
         value.blindedPointEncoded = base64DecodeVector(encoded);
         values.push_back(std::move(value));
@@ -377,8 +390,7 @@ std::string serializeBobTransformedMessageJson(const std::vector<BobTransformedV
     objects.reserve(values.size());
     for (const auto& value : values) {
         std::ostringstream oss;
-        oss << "{\"position\":\"" << escapeJson(value.flooredPosition)
-            << "\",\"transformedPoint\":\"" << escapeJson(base64Encode(value.transformedPointEncoded)) << "\"}";
+        oss << "{\"transformedPoint\":\"" << escapeJson(base64Encode(value.transformedPointEncoded)) << "\"}";
         objects.push_back(oss.str());
     }
     return wrapJsonArray(objects);
@@ -390,7 +402,6 @@ std::vector<BobTransformedValue> deserializeBobTransformedMessageJson(const std:
     values.reserve(objects.size());
     for (const auto& obj : objects) {
         BobTransformedValue value;
-        value.flooredPosition = extractJsonValue(obj, "position");
         auto encoded = extractJsonValue(obj, "transformedPoint");
         value.transformedPointEncoded = base64DecodeVector(encoded);
         values.push_back(std::move(value));

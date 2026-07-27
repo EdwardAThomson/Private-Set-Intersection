@@ -1,13 +1,16 @@
 # Private Set Intersection (PSI) C++
 
-C++ port of the PSI protocol reference implementation. The project mirrors the JavaScript workflow (`reference/psiCalculation.js`) using OpenSSL, libsodium, and the Blake3 C implementation, while adding deterministic tests, CLI tooling, and an HTTP endpoint for UI integration.
+C++ port of the PSI protocol reference implementation, built on libsodium (ristretto255, XSalsa20-Poly1305) and the Blake3 C implementation, with deterministic tests, CLI tooling, and an HTTP endpoint for UI integration.
+
+The project follows the four-phase workflow of the JavaScript demo (`reference/psiCalculation.js`) but deliberately diverges from it cryptographically: the JS version hashes elements to the curve as `H(x)·G` (a known discrete log, which lets one participant enumerate the other's set offline) and sends plaintext elements alongside the blinded values. Both flaws are fixed here; see `docs/security_hardening.md`. The JS demo should be treated as a visualisation aid, not a secure implementation.
 
 The previous version of the code (in JS) is included here, but also separately on GitHub: https://github.com/EdwardAThomson/psi-demo.
 
 ![Screenshot](Screenshot.png)
 
 ## Features
-- Hash-to-group, H2, ChaCha20-Poly1305, and Blake3-based random derivation aligned with the JS reference.
+- Hash-to-group via ristretto255 `from_hash` (Elligator 2, unknown discrete log), H2 key derivation, authenticated secretbox encryption, and Blake3-based deterministic random derivation.
+- Wire messages contain only blinded points and authenticated ciphertexts; no plaintext elements ever leave a party.
 - Phase-oriented PSI API (`psi_protocol`) with both newline and JSON serialization helpers.
 - `psi_demo`: CLI walkthrough of sample units, printing plaintext values, serialized payloads, and per-phase timings.
 - `psi_server`: HTTP service exposing `POST /psi`, returning JSON payloads and timing metrics ready for React integration.
@@ -87,6 +90,9 @@ async function runPsi(bobUnits, aliceUnits) {
 }
 ```
 
+## Threat Model
+The protocol is private against honest-but-curious participants. A malicious participant can fabricate its input set and use the protocol as a membership oracle: it learns whether any element it chooses to probe with is in the honest party's set, and the honest party cannot distinguish a probe from a genuine input. Set cardinality also leaks from message counts. Binding inputs to prior commitments (dispute resolution) and padding sets to a fixed size are tracked in `ROADMAP.md`.
+
 ## Reports & Docs
 - `reports/psi_demo_report.md`: sample CLI run with payloads and timings.
 - `reports/progress_2025-10-16.md`: daily progress summary.
@@ -97,4 +103,4 @@ async function runPsi(bobUnits, aliceUnits) {
 - `reference_cpp_only/`: C++-only React demo that forwards PSI requests through a lightweight Web Worker to the backend, exposes server timings in the UI, and refuses to fall back to the original browser implementation.
 
 ## Licenses
-Refer to upstream libraries for their respective licenses (OpenSSL, libsodium, Blake3 C implementation).
+Refer to upstream libraries for their respective licenses (libsodium, Blake3 C implementation).
