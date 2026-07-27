@@ -30,8 +30,14 @@ deterministic game physics, every protocol message signed by its sender, both
 parties retaining the full transcript. Each turn runs the fog-of-war query in
 both directions (each player takes the Bob role for their own set and the Alice
 role against the other's), over the multi-level mesh cascade. The PSI
-relationship is inherently pairwise, so a room of `n` players is `n(n-1)/2`
-independent instances of this spec, not one `n`-party instance.
+relationship is inherently pairwise, so a room of `n` players is at most
+`n(n-1)/2` independent instances of this spec, not one `n`-party instance.
+
+PSI runs only between *unfriendly* pairs. Allied players (PVE co-op
+teammates) share vision by consent, out of band, and need no PSI between
+them. In practice this keeps the instance count well below the pairwise
+maximum and concentrates the protocol exactly where the adversarial trust
+model applies: PVP encounters and unallied strangers sharing a segment.
 
 Two deployment profiles, both reusing Xaya technology where it saves work:
 
