@@ -2,7 +2,6 @@
 
 #include <cstring>
 #include <stdexcept>
-#include <vector>
 
 #include "blake3_utils.h"
 
@@ -40,13 +39,5 @@ std::array<unsigned char, 32> hashPointToKey(const RistrettoPoint& point) {
 }
 
 MembershipTag keyToMembershipTag(const std::array<unsigned char, 32>& key) {
-    std::vector<unsigned char> input;
-    input.reserve(sizeof kMembershipTagContext - 1 + key.size());
-    input.insert(input.end(), kMembershipTagContext,
-                 kMembershipTagContext + sizeof kMembershipTagContext - 1);
-    input.insert(input.end(), key.begin(), key.end());
-
-    const auto tag = blake3Hash(input);
-    sodium_memzero(input.data(), input.size());
-    return tag;
+    return blake3DeriveKey(kMembershipTagContext, key);
 }

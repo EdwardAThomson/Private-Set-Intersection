@@ -18,4 +18,15 @@ std::array<unsigned char, 32> blake3Hash(const std::string& data);
 // Convenience overload for fixed-size arrays.
 std::array<unsigned char, 32> blake3Hash(const std::array<unsigned char, 32>& data);
 
+// Returns the 32-byte BLAKE3 derive_key output for the given context string
+// and key material. The context provides domain separation, so the result is
+// unrelated to a plain blake3Hash of the same material.
+std::array<unsigned char, 32> blake3DeriveKey(const std::string& context,
+                                              const unsigned char* material,
+                                              std::size_t size);
+
+// Convenience overload for fixed-size key material.
+std::array<unsigned char, 32> blake3DeriveKey(const std::string& context,
+                                              const std::array<unsigned char, 32>& material);
+
 #endif // BLAKE3_UTILS_H

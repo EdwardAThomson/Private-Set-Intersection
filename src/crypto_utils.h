@@ -28,8 +28,8 @@ using MembershipTag = std::array<unsigned char, 32>;
 
 // Tag-mode alternative to encrypting Bob's elements: a one-way,
 // domain-separated hash of the per-element symmetric key. Domain separation
-// (BLAKE3 with a fixed context prefix, vs SHA-512 in hashPointToKey) keeps
-// tags unrelated to the keys they are derived from.
+// (BLAKE3 derive_key mode with a fixed context string, vs SHA-512 in
+// hashPointToKey) keeps tags unrelated to the keys they are derived from.
 MembershipTag keyToMembershipTag(const std::array<unsigned char, 32>& key);
 
 #endif // CRYPTO_UTILS_H

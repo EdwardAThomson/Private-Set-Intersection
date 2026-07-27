@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include "blake3_utils.h"
 #include "crypto_utils.h"
 #include "test_helpers.h"
 
@@ -70,4 +71,28 @@ TEST(CryptoUtilsTest, HashPointToKeyDiffersForDistinctPoints) {
     const auto key2 = hashPointToKey(hashToGroup("bob"));
 
     EXPECT_NE(key1, key2);
+}
+
+TEST(CryptoUtilsTest, Blake3DeriveKeyDiffersFromPlainHash) {
+    ensureSodiumInit();
+
+    const auto key = hashPointToKey(hashToGroup("derive-key-material"));
+    const auto derived = blake3DeriveKey("PSI-membership-tag-v1", key);
+    const auto plain = blake3Hash(key);
+
+    EXPECT_NE(derived, plain);
+}
+
+TEST(CryptoUtilsTest, KeyToMembershipTagIsDeterministicAndDomainSeparated) {
+    ensureSodiumInit();
+
+    const auto point = hashToGroup("membership-tag");
+    const auto key = hashPointToKey(point);
+
+    const auto tag1 = keyToMembershipTag(key);
+    const auto tag2 = keyToMembershipTag(key);
+
+    EXPECT_EQ(tag1, tag2);
+    EXPECT_NE(tag1, key);
+    EXPECT_NE(tag1, hashPointToKey(point));
 }
