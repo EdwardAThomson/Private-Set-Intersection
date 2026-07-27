@@ -9,6 +9,17 @@ adding HTTP networking, deterministic tests, and timing instrumentation. See
 
 ## Shipped
 
+- [x] Commit-reveal dispute layer, phase 1 (`docs/commit_reveal_spec.md`, section 9,
+      items 1-4): deterministic derivation mode (`src/derivation.h`, turn seeds,
+      subseeds, `DeterministicRng` threaded through the tag-mode entry points as an
+      opt-in; default remains system randomness), seed-derived dummy padding to a
+      fixed `N_max` and per-turn commitments, signed append-only transcript container
+      (`src/transcript.h`, dev-mode Ed25519), recorded two-direction session helper
+      (`src/session.h`), and the `psi_audit` CLI running audit steps 1, 2, 4 and 5
+      with a single verdict line (HONEST / FRAUD with first-mismatch pointer /
+      SIGNATURE-INVALID). Tests cover determinism, honest exchanges, probe forgery,
+      transcript tampering, wrong openings and padding (2026-07-27)
+
 - [x] Core protocol — ristretto255 hash-to-group (unknown discrete log), H2, authenticated
       secretbox encryption, BLAKE3 PRNG (deliberately diverges from the JS reference,
       which has a known-discrete-log break; see `docs/security_hardening.md`)

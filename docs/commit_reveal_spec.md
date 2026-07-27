@@ -1,6 +1,6 @@
 # Commit-Reveal Dispute Protocol: Draft Specification
 
-_Status: draft v0.1 · sketch complete, details being filled in · see `docs/dispute_resolution_notes.md` for background and provenance_
+_Status: draft v0.1 · sketch complete, details being filled in · phase 1 of section 9 (derivation mode, transcript container, `psi_audit` CLI, padding and commitment helpers) is implemented in this repo · see `docs/dispute_resolution_notes.md` for background and provenance_
 
 This document specifies the commit-reveal layer that binds the PSI fog-of-war
 protocol to committed game state, so that a fabricated PSI input becomes signed,
