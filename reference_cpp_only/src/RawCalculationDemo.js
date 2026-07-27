@@ -82,6 +82,9 @@ const RawCalculationDemo = () => {
       if (value.unit) {
         parts.push(`unit: ${value.unit}`);
       }
+      if (value.tag) {
+        parts.push(`tag: ${shorten(value.tag)}`);
+      }
       if (value.ciphertext) {
         parts.push(`ciphertext: ${shorten(value.ciphertext)}`);
       }

@@ -385,6 +385,27 @@ std::vector<AliceSentValue> deserializeAliceBlindedMessageJson(const std::string
     return values;
 }
 
+std::string serializeBobTagMessageJson(const std::vector<std::array<unsigned char, 32>>& tags) {
+    std::vector<std::string> objects;
+    objects.reserve(tags.size());
+    for (const auto& tag : tags) {
+        std::ostringstream oss;
+        oss << "{\"tag\":\"" << escapeJson(base64Encode(tag)) << "\"}";
+        objects.push_back(oss.str());
+    }
+    return wrapJsonArray(objects);
+}
+
+std::vector<std::array<unsigned char, 32>> deserializeBobTagMessageJson(const std::string& json) {
+    auto objects = unwrapJsonArray(json);
+    std::vector<std::array<unsigned char, 32>> tags;
+    tags.reserve(objects.size());
+    for (const auto& obj : objects) {
+        tags.push_back(base64DecodeArray<32>(extractJsonValue(obj, "tag")));
+    }
+    return tags;
+}
+
 std::string serializeBobTransformedMessageJson(const std::vector<BobTransformedValue>& values) {
     std::vector<std::string> objects;
     objects.reserve(values.size());

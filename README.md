@@ -9,8 +9,9 @@ The previous version of the code (in JS) is included here, but also separately o
 ![Screenshot](Screenshot.png)
 
 ## Features
-- Hash-to-group via ristretto255 `from_hash` (Elligator 2, unknown discrete log), H2 key derivation, authenticated secretbox encryption, and Blake3-based deterministic random derivation.
-- Wire messages contain only blinded points and authenticated ciphertexts; no plaintext elements ever leave a party.
+- Hash-to-group via ristretto255 `from_hash` (Elligator 2, unknown discrete log), H2 key derivation, and Blake3-based deterministic random derivation.
+- Tag mode by default: Bob sends one-way BLAKE3 membership tags, so finalisation is O(A) hash lookups; the authenticated-secretbox variant remains available (`runPSIProtocol`).
+- Wire messages contain only blinded points and fixed-size tags (or authenticated ciphertexts in secretbox mode); no plaintext elements ever leave a party.
 - Phase-oriented PSI API (`psi_protocol`) with both newline and JSON serialization helpers.
 - `psi_demo`: CLI walkthrough of sample units, printing plaintext values, serialized payloads, and per-phase timings.
 - `psi_server`: HTTP service exposing `POST /psi`, returning JSON payloads and timing metrics ready for React integration.
@@ -64,9 +65,9 @@ Content-Type: application/json
 ### Response
 ```json
 {
-  "bob_message": {"items": [...]},
-  "alice_message": {"items": [...]},
-  "bob_response": {"items": [...]},
+  "bob_message": {"items": [{"tag": "<base64>"}, ...]},
+  "alice_message": {"items": [{"blindedPoint": "<base64>"}, ...]},
+  "bob_response": {"items": [{"transformedPoint": "<base64>"}, ...]},
   "decrypted": ["450 450", ...],
   "timings_ms": {
     "bob_setup": <double>,

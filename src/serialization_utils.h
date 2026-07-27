@@ -21,6 +21,9 @@ std::vector<BobTransformedValue> deserializeBobTransformedMessage(const std::str
 std::string serializeBobTagMessage(const std::vector<std::array<unsigned char, 32>>& tags);
 std::vector<std::array<unsigned char, 32>> deserializeBobTagMessage(const std::string& data);
 
+std::string serializeBobTagMessageJson(const std::vector<std::array<unsigned char, 32>>& tags);
+std::vector<std::array<unsigned char, 32>> deserializeBobTagMessageJson(const std::string& json);
+
 std::string base64Encode(const unsigned char* data, std::size_t size);
 std::string base64Encode(const std::vector<unsigned char>& data);
 template <std::size_t N>

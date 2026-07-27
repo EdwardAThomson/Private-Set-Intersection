@@ -69,11 +69,11 @@ int main() {
         double aliceFinalizeMs = 0.0;
 
         const auto bobMessage = measure(bobSetupMs, [&]() {
-            return bobCreateInitialMessage(bob);
+            return bobCreateInitialTagMessage(bob);
         });
 
         const auto aliceMessage = measure(aliceSetupMs, [&]() {
-            return aliceProcessBobMessage(bobMessage.serialized, alice);
+            return aliceProcessBobTagMessage(bobMessage.serialized, alice);
         });
 
         const auto bobResponse = measure(bobResponseMs, [&]() {
@@ -81,7 +81,7 @@ int main() {
         });
 
         const auto intersections = measure(aliceFinalizeMs, [&]() {
-            return aliceFinalizeIntersection(bobResponse.serialized, aliceMessage.state);
+            return aliceFinalizeIntersectionTags(bobResponse.serialized, aliceMessage.state);
         });
 
         std::cout << "PSI smoke test complete\n";

@@ -80,12 +80,13 @@ int main() {
 
     PhaseTimings timings;
 
+    // Tag mode is the default protocol variant; see docs/security_hardening.md.
     const auto bobMessage = measurePhase(timings.bobSetupMs, [&]() {
-        return bobCreateInitialMessage(bobUnits);
+        return bobCreateInitialTagMessage(bobUnits);
     });
 
     const auto aliceMessage = measurePhase(timings.aliceSetupMs, [&]() {
-        return aliceProcessBobMessage(bobMessage.serialized, aliceUnits);
+        return aliceProcessBobTagMessage(bobMessage.serialized, aliceUnits);
     });
 
     const auto bobResponse = measurePhase(timings.bobResponseMs, [&]() {
@@ -93,7 +94,7 @@ int main() {
     });
 
     const auto decrypted = measurePhase(timings.aliceFinalizeMs, [&]() {
-        return aliceFinalizeIntersection(bobResponse.serialized, aliceMessage.state);
+        return aliceFinalizeIntersectionTags(bobResponse.serialized, aliceMessage.state);
     });
 
     printHeader("Bob Units (Bob's local knowledge)");
@@ -106,14 +107,12 @@ int main() {
         std::cout << unit.id << " => (" << unit.x << ", " << unit.y << ")\n";
     }
 
-    printHeader("Bob -> Alice: Encrypted Units");
-    std::cout << "count: " << bobMessage.units.size() << '\n';
-    for (std::size_t i = 0; i < bobMessage.units.size(); ++i) {
-        const auto& entry = bobMessage.units[i];
-        std::cout << "[" << i << "] ciphertext bytes: " << entry.ciphertext.ciphertext.size()
-                  << ", nonce: " << base64Encode(entry.ciphertext.nonce) << '\n';
+    printHeader("Bob -> Alice: Membership Tags");
+    std::cout << "count: " << bobMessage.tags.size() << '\n';
+    for (std::size_t i = 0; i < bobMessage.tags.size(); ++i) {
+        std::cout << "[" << i << "] tag: " << base64Encode(bobMessage.tags[i]) << '\n';
     }
-    std::cout << "JSON payload: \n" << serializeBobEncryptedMessageJson(bobMessage.units) << "\n";
+    std::cout << "JSON payload: \n" << serializeBobTagMessageJson(bobMessage.tags) << "\n";
 
     printHeader("Alice -> Bob: Blinded Points");
     std::cout << "count: " << aliceMessage.values.size() << '\n';
