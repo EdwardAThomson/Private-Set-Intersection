@@ -88,13 +88,22 @@ that replaces the `randombytes_buf` calls behind an explicit opt-in
 Per turn, before any PSI flight:
 
 ```
-C_P(t) = H( canonical(S_P(t)) || subseed_P(t, 0, 0, 3) )
+C_P(t) = H( canonical(S_P(t)) || H(seed_P(t)) || subseed_P(t, 0, 0, 3) )
 ```
 
 where `canonical(S)` is the sorted, newline-joined list of the player's
 occupied finest-level cell strings. Exchanged as the turn's first signed
-message. The initial commitment `C_P(0)` goes on-chain at setup along with
-`com_k_P`.
+message. The initial commitment `C_P(0)` goes on-chain at setup.
+
+Binding `H(seed_P(t))` into the per-turn commitment settles the seed-opening
+granularity question: opening turn `t` means revealing `(S_P(t), seed_P(t))`
+and checking them against `C_P(t)`; the salt is derived from the revealed
+seed. Exactly one turn's randomness (and therefore one turn's positions, see
+the disclosure note in section 8) is exposed per dispute. No Merkle tree over
+per-turn seeds, no VRF, and no reveal of `k_P` is needed; the master key is
+demoted to a derivation convenience, and its on-chain commitment `com_k_P`
+becomes optional (useful only for a full end-of-game reveal, which the 2020
+design already envisages).
 
 **TBD:** whether per-turn commitments also need periodic on-chain checkpoints
 (cost/latency trade-off), or whether the channel's signed-state mechanism
@@ -139,11 +148,11 @@ side costs ~50 ms threaded, which suggests generous headroom is affordable).
 
 ## 7. Audit algorithm
 
-Inputs: the signed transcript for disputed turn `t`, the accused's opening
-`(S_P(t), seed_P(t))` with a proof that `seed_P(t)` derives from the committed
-`k_P` (**TBD:** PRF opening format; simplest is revealing `k_P` at game end,
-turn-selective openings need a Merkle tree over `seed_P(t)` values or a
-verifiable PRF).
+Inputs: the signed transcript for disputed turn `t`, and the accused's opening
+`(S_P(t), seed_P(t))`, verified against the turn commitment `C_P(t)`
+(section 4). No proof of derivation from `k_P` is required: the per-turn
+commitment binds the seed, and a seed that fails to reproduce the transcript
+is fraud regardless of where it came from.
 
 Steps:
 
@@ -190,9 +199,12 @@ anything.
    move deadlines in the game rules (GSP-arbitrated profile).
 
 Disclosure note: in the GSP-arbitrated profile, dispute evidence (the signed
-transcript and the disputed turn's opened positions) becomes public on-chain.
-The opening exposes only the disputed turn, and a proven dispute typically ends
-the game, so this is accepted rather than mitigated.
+transcript and the disputed turn's opening) becomes public on-chain. Note that
+on a small cell universe, revealing a turn's blinding scalars is equivalent to
+revealing that turn's positions: given `r` and the transcript's `r * H(x)`,
+anyone can test every candidate cell and recover `x`. The per-turn seed
+binding (section 4) confines this to exactly the disputed turn, and a proven
+dispute typically ends the game, so this is accepted rather than mitigated.
 
 ## 9. Implementation plan (in this repo, chain-free first)
 
@@ -212,9 +224,8 @@ the game, so this is accepted rather than mitigated.
 
 ## 10. Open questions
 
-- Turn-selective seed opening: Merkle tree over per-turn seeds vs revealing
-  `k_P` only at game end (simpler, but a mid-game dispute then exposes future
-  randomness; probably fine if a proven dispute ends the game).
+- ~~Turn-selective seed opening~~ Resolved: `H(seed_P(t))` is bound into the
+  per-turn commitment (section 4), so an opening exposes exactly one turn.
 - Does the mesh cascade's per-level filtering belong inside the committed
   input (commit per level) or derived from the finest-level commitment at
   audit time (current assumption: derived, since filtering is deterministic
