@@ -19,6 +19,7 @@ set(SOURCE_FILES
     src/random_utils.cpp
     src/position_utils.cpp
     src/psi_protocol.cpp
+    src/mesh_psi.cpp
     src/serialization_utils.cpp
 )
 
@@ -38,6 +39,18 @@ add_executable(psi_demo
 
 add_executable(psi_bench
     tools/psi_bench.cpp
+    src/psi_protocol.cpp
+    src/position_utils.cpp
+    src/random_utils.cpp
+    src/crypto_utils.cpp
+    src/secretbox_utils.cpp
+    src/blake3_utils.cpp
+    src/serialization_utils.cpp
+)
+
+add_executable(psi_mesh_bench
+    tools/psi_mesh_bench.cpp
+    src/mesh_psi.cpp
     src/psi_protocol.cpp
     src/position_utils.cpp
     src/random_utils.cpp
@@ -88,6 +101,7 @@ target_link_libraries(sodium_external INTERFACE ${SODIUM_LIBRARY})
 target_link_libraries(psi sodium_external blake3)
 target_link_libraries(psi_demo sodium_external blake3)
 target_link_libraries(psi_bench sodium_external blake3)
+target_link_libraries(psi_mesh_bench sodium_external blake3)
 target_link_libraries(psi_server sodium_external blake3)
 
 find_package(PkgConfig REQUIRED)
@@ -98,6 +112,7 @@ set(TEST_SOURCES
     tests/random_utils_test.cpp
     tests/position_utils_test.cpp
     tests/psi_protocol_test.cpp
+    tests/mesh_psi_test.cpp
     tests/serialization_utils_test.cpp
     src/crypto_utils.cpp
     src/secretbox_utils.cpp
@@ -105,6 +120,7 @@ set(TEST_SOURCES
     src/random_utils.cpp
     src/position_utils.cpp
     src/psi_protocol.cpp
+    src/mesh_psi.cpp
     src/serialization_utils.cpp
 )
 

@@ -72,4 +72,16 @@ std::vector<MatchedUnit> aliceFinalizeIntersectionTags(const std::string& serial
 std::vector<MatchedUnit> runPSIProtocolTags(const std::vector<Unit>& bobUnits,
                                               const std::vector<Unit>& aliceUnits);
 
+// Element-list entry points for callers that already hold the exact strings to
+// intersect (e.g. the multi-level mesh cascade in mesh_psi.h, which
+// domain-separates grid cell strings with a level prefix). Identical to the
+// Unit-based tag-mode functions except that no position flooring is applied;
+// each call still draws a completely fresh Bob scalar / Alice blinding.
+BobInitialTagMessage bobCreateInitialTagMessageFromElements(
+    const std::vector<std::string>& elements);
+
+AliceResponseMessage aliceProcessBobTagMessageFromElements(
+    const std::string& serializedBobTagMessage,
+    const std::vector<std::string>& elements);
+
 #endif // PSI_PROTOCOL_H
