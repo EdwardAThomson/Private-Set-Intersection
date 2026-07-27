@@ -95,6 +95,7 @@ The protocol is private against honest-but-curious participants. A malicious par
 ## Reports & Docs
 - `docs/security_hardening.md`: the two 2026 security fixes (hash-to-group, wire privacy) and the tag-mode addendum.
 - `docs/dispute_resolution_notes.md`: dispute-resolution design notes (commit-and-replay plus PSI-transcript binding).
+- `docs/commit_reveal_spec.md`: draft specification of the commit-reveal dispute protocol.
 - `docs/mesh_cascade.md`: the coarse-to-fine multi-level mesh cascade.
 - `reports/psi_demo_report.md`: sample CLI run with payloads and timings.
 - `reports/progress_2025-10-16.md`: daily progress summary.
