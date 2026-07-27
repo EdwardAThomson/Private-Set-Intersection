@@ -6,9 +6,6 @@
 #include <vector>
 
 extern "C" {
-#include <openssl/bn.h>
-#include <openssl/ec.h>
-#include <openssl/obj_mac.h>
 #include <sodium.h>
 }
 
@@ -25,32 +22,6 @@ void ensureSodiumInit() {
     }();
     (void)ok;
 }
-
-struct ECEnvironment {
-    ECEnvironment() {
-        group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1);
-        if (!group) {
-            throw std::runtime_error("Failed to create EC_GROUP");
-        }
-        ctx = BN_CTX_new();
-        if (!ctx) {
-            EC_GROUP_free(group);
-            throw std::runtime_error("Failed to create BN_CTX");
-        }
-    }
-
-    ~ECEnvironment() {
-        if (group) {
-            EC_GROUP_free(group);
-        }
-        if (ctx) {
-            BN_CTX_free(ctx);
-        }
-    }
-
-    EC_GROUP* group{nullptr};
-    BN_CTX* ctx{nullptr};
-};
 
 template <typename Func>
 auto measure(double& durationMs, Func&& func) {
@@ -89,7 +60,6 @@ int main() {
     }
 
     try {
-        ECEnvironment env;
         const auto bob = bobUnits();
         const auto alice = aliceUnits();
 
@@ -99,19 +69,19 @@ int main() {
         double aliceFinalizeMs = 0.0;
 
         const auto bobMessage = measure(bobSetupMs, [&]() {
-            return bobCreateInitialMessage(bob, env.group, env.ctx);
+            return bobCreateInitialMessage(bob);
         });
 
         const auto aliceMessage = measure(aliceSetupMs, [&]() {
-            return aliceProcessBobMessage(bobMessage.serialized, alice, env.group, env.ctx);
+            return aliceProcessBobMessage(bobMessage.serialized, alice);
         });
 
         const auto bobResponse = measure(bobResponseMs, [&]() {
-            return bobProcessAliceMessage(aliceMessage.serialized, bobMessage.state, env.group, env.ctx);
+            return bobProcessAliceMessage(aliceMessage.serialized, bobMessage.state);
         });
 
         const auto intersections = measure(aliceFinalizeMs, [&]() {
-            return aliceFinalizeIntersection(bobResponse.serialized, aliceMessage.state, env.group, env.ctx);
+            return aliceFinalizeIntersection(bobResponse.serialized, aliceMessage.state);
         });
 
         std::cout << "PSI smoke test complete\n";

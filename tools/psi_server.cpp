@@ -15,9 +15,6 @@
 #include "serialization_utils.h"
 
 extern "C" {
-#include <openssl/bn.h>
-#include <openssl/ec.h>
-#include <openssl/obj_mac.h>
 #include <sodium.h>
 }
 
@@ -32,32 +29,6 @@ void ensureSodiumInitialised() {
     }();
     (void)ok;
 }
-
-struct ECEnvironment {
-    ECEnvironment() {
-        group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1);
-        if (!group) {
-            throw std::runtime_error("Failed to create EC_GROUP");
-        }
-        ctx = BN_CTX_new();
-        if (!ctx) {
-            EC_GROUP_free(group);
-            throw std::runtime_error("Failed to create BN_CTX");
-        }
-    }
-
-    ~ECEnvironment() {
-        if (group) {
-            EC_GROUP_free(group);
-        }
-        if (ctx) {
-            BN_CTX_free(ctx);
-        }
-    }
-
-    EC_GROUP* group{nullptr};
-    BN_CTX* ctx{nullptr};
-};
 
 std::string trim(const std::string& input) {
     std::size_t start = 0;
@@ -178,7 +149,7 @@ std::string buildResponseJson(const BobInitialMessage& bobMessage,
     return oss.str();
 }
 
-std::string handlePsiRequest(const std::string& body, ECEnvironment& env) {
+std::string handlePsiRequest(const std::string& body) {
     const auto bobUnits = parseUnits(body, "bob_units");
     const auto aliceUnits = parseUnits(body, "alice_units");
 
@@ -186,28 +157,28 @@ std::string handlePsiRequest(const std::string& body, ECEnvironment& env) {
 
     const auto bobMessage = [&]() {
         const auto start = std::chrono::steady_clock::now();
-        auto msg = bobCreateInitialMessage(bobUnits, env.group, env.ctx);
+        auto msg = bobCreateInitialMessage(bobUnits);
         timings[0] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
         return msg;
     }();
 
     const auto aliceMessage = [&]() {
         const auto start = std::chrono::steady_clock::now();
-        auto msg = aliceProcessBobMessage(bobMessage.serialized, aliceUnits, env.group, env.ctx);
+        auto msg = aliceProcessBobMessage(bobMessage.serialized, aliceUnits);
         timings[1] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
         return msg;
     }();
 
     const auto bobResponse = [&]() {
         const auto start = std::chrono::steady_clock::now();
-        auto msg = bobProcessAliceMessage(aliceMessage.serialized, bobMessage.state, env.group, env.ctx);
+        auto msg = bobProcessAliceMessage(aliceMessage.serialized, bobMessage.state);
         timings[2] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
         return msg;
     }();
 
     const auto decrypted = [&]() {
         const auto start = std::chrono::steady_clock::now();
-        auto result = aliceFinalizeIntersection(bobResponse.serialized, aliceMessage.state, env.group, env.ctx);
+        auto result = aliceFinalizeIntersection(bobResponse.serialized, aliceMessage.state);
         timings[3] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
         return result;
     }();
@@ -254,7 +225,6 @@ std::string buildOptionsResponse() {
 }
 
 void serveLoop(int serverFd) {
-    ECEnvironment env;
     while (true) {
         sockaddr_in clientAddr{};
         socklen_t addrLen = sizeof(clientAddr);
@@ -304,7 +274,7 @@ void serveLoop(int serverFd) {
                     throw std::runtime_error("Missing headers terminator");
                 }
                 auto body = request.substr(headerEnd + 4);
-                response = buildHttpResponse(handlePsiRequest(body, env));
+                response = buildHttpResponse(handlePsiRequest(body));
             }
         } catch (const std::exception& ex) {
             std::cerr << "Request error: " << ex.what() << '\n';

@@ -1,13 +1,13 @@
-#include "chacha_utils.h"
+#include "secretbox_utils.h"
 
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-ChaChaCiphertext chachaEncrypt(
+SecretBoxCiphertext secretboxEncrypt(
     const std::array<unsigned char, crypto_secretbox_KEYBYTES>& key,
     const std::string& plaintext) {
-    ChaChaCiphertext result;
+    SecretBoxCiphertext result;
     randombytes_buf(result.nonce.data(), result.nonce.size());
 
     result.ciphertext.resize(plaintext.size() + crypto_secretbox_MACBYTES);
@@ -19,9 +19,9 @@ ChaChaCiphertext chachaEncrypt(
     return result;
 }
 
-std::optional<std::string> chachaDecrypt(
+std::optional<std::string> secretboxDecrypt(
     const std::array<unsigned char, crypto_secretbox_KEYBYTES>& key,
-    const ChaChaCiphertext& payload) {
+    const SecretBoxCiphertext& payload) {
     if (payload.ciphertext.size() < crypto_secretbox_MACBYTES) {
         return std::nullopt;
     }

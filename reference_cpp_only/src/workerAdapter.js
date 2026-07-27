@@ -75,19 +75,18 @@ const adaptServerResponse = (payload) => {
   const decrypted = Array.isArray(payload.decrypted) ? payload.decrypted : [];
   const timings = payload.timings_ms || {};
 
+  // Wire payloads intentionally carry no plaintext positions; only the
+  // decrypted intersection below reveals shared cells.
   const bobValues = bobItems.map((item) => ({
-    unit: item.position,
     ciphertext: item.ciphertext,
     nonce: item.nonce
   }));
 
   const aliceValues = aliceItems.map((item) => ({
-    unit: item.position,
     blindedPoint: item.blindedPoint
   }));
 
   const bobTransformedValues = bobResponseItems.map((item) => ({
-    unit: item.position,
     transformedPoint: item.transformedPoint
   }));
 

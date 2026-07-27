@@ -1,5 +1,13 @@
 # PSI C++ Porting Plan
 
+> **Superseded (2026-07-27):** this plan describes the original port, which used
+> OpenSSL P-256 (65-byte uncompressed points) and mirrored the JS reference,
+> including calling the cipher "ChaCha20-Poly1305". The protocol core has since
+> moved to libsodium ristretto255, OpenSSL is no longer a dependency, wire messages
+> no longer carry plaintext positions, and the secretbox cipher is XSalsa20-Poly1305.
+> See `docs/security_hardening.md` for the current design. The text below is kept
+> as a historical record.
+
 ## Goal
 Recreate the PSI workflow implemented in `reference/psiCalculation.js` in modern C++ using OpenSSL (EC math), libsodium (ChaCha20-Poly1305, random utilities), and BLAKE3 (hash-based PRNG). The end result should enable deterministic intersection results that match the behaviour of the JavaScript reference.
 

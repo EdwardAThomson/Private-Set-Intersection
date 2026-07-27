@@ -15,7 +15,7 @@ set(SOURCE_FILES
     src/main.cpp
     src/crypto_utils.cpp
     src/blake3_utils.cpp
-    src/chacha_utils.cpp
+    src/secretbox_utils.cpp
     src/random_utils.cpp
     src/position_utils.cpp
     src/psi_protocol.cpp
@@ -31,7 +31,18 @@ add_executable(psi_demo
     src/position_utils.cpp
     src/random_utils.cpp
     src/crypto_utils.cpp
-    src/chacha_utils.cpp
+    src/secretbox_utils.cpp
+    src/blake3_utils.cpp
+    src/serialization_utils.cpp
+)
+
+add_executable(psi_bench
+    tools/psi_bench.cpp
+    src/psi_protocol.cpp
+    src/position_utils.cpp
+    src/random_utils.cpp
+    src/crypto_utils.cpp
+    src/secretbox_utils.cpp
     src/blake3_utils.cpp
     src/serialization_utils.cpp
 )
@@ -42,7 +53,7 @@ add_executable(psi_server
     src/position_utils.cpp
     src/random_utils.cpp
     src/crypto_utils.cpp
-    src/chacha_utils.cpp
+    src/secretbox_utils.cpp
     src/blake3_utils.cpp
     src/serialization_utils.cpp
 )
@@ -74,10 +85,10 @@ target_include_directories(sodium_external INTERFACE ${SODIUM_INCLUDE_DIR})
 target_link_libraries(sodium_external INTERFACE ${SODIUM_LIBRARY})
 
 # Link libraries
-find_package(OpenSSL REQUIRED)
-target_link_libraries(psi OpenSSL::SSL OpenSSL::Crypto sodium_external blake3)
-target_link_libraries(psi_demo OpenSSL::SSL OpenSSL::Crypto sodium_external blake3)
-target_link_libraries(psi_server OpenSSL::SSL OpenSSL::Crypto sodium_external blake3)
+target_link_libraries(psi sodium_external blake3)
+target_link_libraries(psi_demo sodium_external blake3)
+target_link_libraries(psi_bench sodium_external blake3)
+target_link_libraries(psi_server sodium_external blake3)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTEST REQUIRED gtest_main)
@@ -89,7 +100,7 @@ set(TEST_SOURCES
     tests/psi_protocol_test.cpp
     tests/serialization_utils_test.cpp
     src/crypto_utils.cpp
-    src/chacha_utils.cpp
+    src/secretbox_utils.cpp
     src/blake3_utils.cpp
     src/random_utils.cpp
     src/position_utils.cpp
@@ -102,8 +113,6 @@ target_include_directories(psi_tests PRIVATE ${GTEST_INCLUDE_DIRS})
 target_link_libraries(psi_tests
     PRIVATE
         ${GTEST_LIBRARIES}
-        OpenSSL::SSL
-        OpenSSL::Crypto
         sodium_external
         blake3
         pthread
