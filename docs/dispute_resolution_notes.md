@@ -24,7 +24,11 @@ Three layers, from three sources:
    randomness, so the PSI messages themselves become auditable against the verified
    position history. Their formulation: commit to input set + PRNG seed before the
    exchange, derive every blinding scalar deterministically from the committed seed,
-   sign all messages, audit by recomputing every byte.
+   sign all messages, audit by recomputing every byte. Since published as *Fog of
+   War without Zero-Knowledge Proofs: A Blinded Mutual-Sighting Test for Trustless
+   Game Channels* (July 2026, paper and reference implementation in the same
+   repository), which credits this repo as its engineering starting point and the
+   2020 blog for the commit-and-replay architecture.
 3. **Verification-game machinery** (Truebit, Cartesi, Xaya channel disputes): when a
    recomputation is too heavy for on-chain execution, resolve it by interactive
    bisection or a verifiable VM, with bonds slashed on proven fraud.
