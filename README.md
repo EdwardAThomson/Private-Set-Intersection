@@ -92,12 +92,15 @@ async function runPsi(bobUnits, aliceUnits) {
 ```
 
 ## Threat Model
-The protocol is private against honest-but-curious participants. A malicious participant can fabricate its input set and use the protocol as a membership oracle: it learns whether any element it chooses to probe with is in the honest party's set, and the honest party cannot distinguish a probe from a genuine input. Set cardinality also leaks from message counts. Binding inputs to prior commitments (dispute resolution) and padding sets to a fixed size are tracked in `ROADMAP.md`.
+The protocol is private against honest-but-curious participants. A malicious participant can fabricate its input set and use the protocol as a membership oracle: it learns whether any element it chooses to probe with is in the honest party's set, and the honest party cannot distinguish a probe from a genuine input. Set cardinality also leaks from message counts. Binding inputs to prior commitments (dispute resolution) and padding sets to a fixed size are tracked in `ROADMAP.md`; see `docs/dispute_resolution_notes.md` for the design, which extends the commit-and-replay approach from [Preventing cheaters in Fog Of War Games](https://edward-thomson.medium.com/preventing-cheaters-in-fog-of-war-games-69f202fbe107) (2020) with the PSI-transcript binding suggested in a security review by the [xaya/fog-of-war](https://github.com/xaya/fog-of-war) authors, who also reported issues #1 and #2.
 
 ## Reports & Docs
+- `docs/security_hardening.md`: the two 2026 security fixes (hash-to-group, wire privacy) and the tag-mode addendum.
+- `docs/dispute_resolution_notes.md`: dispute-resolution design notes (commit-and-replay plus PSI-transcript binding).
+- `docs/mesh_cascade.md`: the coarse-to-fine multi-level mesh cascade.
 - `reports/psi_demo_report.md`: sample CLI run with payloads and timings.
 - `reports/progress_2025-10-16.md`: daily progress summary.
-- `docs/porting_plan.md`: roadmap, milestones, and API references.
+- `docs/porting_plan.md`: original porting plan (superseded; kept as a historical record).
 
 ## Front-End Variants
 - `reference/`: legacy React demo with automatic JavaScript worker fallback.
