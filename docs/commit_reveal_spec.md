@@ -24,12 +24,27 @@ co-occupancy in the mesh cascade).
 
 ## 2. Parties and setting
 
-Two players, `P` and `Q`, in a bonded off-chain channel (target: Xaya game
-channels) with an on-chain contract holding stakes and the game rules. Game
-physics is deterministic. Every channel message is signed by its sender; both
-parties retain the full transcript. Each turn runs the fog-of-war query in both
-directions (each player takes the Bob role for their own set and the Alice role
-against the other's), over the multi-level mesh cascade.
+The core of this spec (sections 3 to 7) is transport-agnostic: two players `P`
+and `Q`, a bonded on-chain contract holding stakes and the game rules,
+deterministic game physics, every protocol message signed by its sender, both
+parties retaining the full transcript. Each turn runs the fog-of-war query in
+both directions (each player takes the Bob role for their own set and the Alice
+role against the other's), over the multi-level mesh cascade. The PSI
+relationship is inherently pairwise, so a room of `n` players is `n(n-1)/2`
+independent instances of this spec, not one `n`-party instance.
+
+Two deployment profiles, both reusing Xaya technology where it saves work:
+
+- **Channelized 1v1** (fast-tick games, e.g. RTS): each pair runs inside a Xaya
+  game channel (the approach pioneered by Xayaships). Instant bilateral
+  finality; abort and timeout semantics come from the channel framework.
+- **GSP-arbitrated rooms** (turn-based multiplayer, e.g. xayaroguelike): pairs
+  exchange signed PSI flights over any off-chain transport; only commitments
+  are periodically anchored on-chain. Disputes are submitted as ordinary chain
+  moves and the game's GSP (Game State Processor) executes the audit as part of
+  its state transition. This is the direct continuation of the 2020 blog's
+  design (on-chain commitments plus deterministic GSP replay), extended to the
+  PSI transcript.
 
 ## 3. Key and seed hierarchy
 
@@ -162,15 +177,22 @@ anything.
    challenge deposit.
 2. **Open**: accused posts the turn opening within the timeout; silence
    forfeits.
-3. **Verify**: the audit algorithm runs in the channel's dispute mechanism.
-   **TBD:** execution strategy: (a) full recomputation inside a verifiable VM
-   (Cartesi-style), (b) interactive bisection over the audit's step trace
-   (Truebit-style), or (c) direct on-chain recomputation if `N_max` and the
-   curve ops are cheap enough on the target chain. For Xaya channels the
-   natural shape is the game's state-transition validity predicate.
+3. **Verify**: on Xaya (both profiles), the audit runs directly: the GSP is
+   full computation executed by every node, not gas-metered, and the audit is
+   deterministic and cheap (a few thousand scalar multiplications, milliseconds
+   at the `N_max` sizes under consideration), so it slots into the game's
+   state-transition validity predicate as-is. No verification game is needed.
+   Verifiable-VM (Cartesi) or interactive-bisection (Truebit) execution only
+   becomes relevant if this spec is ever deployed on a gas-metered chain.
 4. **Resolve**: fraud slashes the accused's bond to the challenger; an honest
    verdict forfeits the challenge deposit to the accused. Mid-protocol aborts
-   are timeouts, handled by the channel independent of this spec.
+   are timeouts, handled by the channel framework (channelized profile) or by
+   move deadlines in the game rules (GSP-arbitrated profile).
+
+Disclosure note: in the GSP-arbitrated profile, dispute evidence (the signed
+transcript and the disputed turn's opened positions) becomes public on-chain.
+The opening exposes only the disputed turn, and a proven dispute typically ends
+the game, so this is accepted rather than mitigated.
 
 ## 9. Implementation plan (in this repo, chain-free first)
 
