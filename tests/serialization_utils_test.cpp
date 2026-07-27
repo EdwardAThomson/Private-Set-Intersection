@@ -176,6 +176,27 @@ TEST(SerializationUtilsTest, BobTagRoundTrip) {
     }
 }
 
+TEST(SerializationUtilsTest, BobTagJsonRoundTrip) {
+    ensureSodiumInit();
+
+    std::vector<Unit> bobUnits = {
+        {"b1", 1.2, 3.4},
+        {"b2", 5.6, 7.8}
+    };
+
+    const auto bobMessage = bobCreateInitialTagMessage(bobUnits);
+    const auto json = serializeBobTagMessageJson(bobMessage.tags);
+    const auto decoded = deserializeBobTagMessageJson(json);
+
+    EXPECT_EQ(bobMessage.tags, decoded);
+}
+
+TEST(SerializationUtilsTest, BobTagJsonRejectsMissingKey) {
+    ensureSodiumInit();
+    std::string json = R"({"items":[{"other":"value"}]})";
+    EXPECT_THROW(deserializeBobTagMessageJson(json), std::runtime_error);
+}
+
 TEST(SerializationUtilsTest, BobTagDeserialiseRejectsWrongLength) {
     ensureSodiumInit();
     // "AAAA" decodes to 3 bytes, not the required 32.

@@ -76,8 +76,11 @@ const adaptServerResponse = (payload) => {
   const timings = payload.timings_ms || {};
 
   // Wire payloads intentionally carry no plaintext positions; only the
-  // decrypted intersection below reveals shared cells.
+  // matched intersection below reveals shared cells. The server runs the
+  // protocol in tag mode, so Bob's items are membership tags; the ciphertext
+  // and nonce fields remain for older secretbox-mode responses.
   const bobValues = bobItems.map((item) => ({
+    tag: item.tag,
     ciphertext: item.ciphertext,
     nonce: item.nonce
   }));

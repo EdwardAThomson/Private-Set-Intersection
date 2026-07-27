@@ -232,4 +232,6 @@ them up in a set of Bob's tags. Consequences:
   fixed context prefix).
 
 Both modes coexist in psi_protocol (`runPSIProtocol` vs `runPSIProtocolTags`);
-phases 2 and 3 are shared. The server and demo UI still use secretbox mode.
+phases 2 and 3 are shared. Tag mode is the default for `psi_server`, `psi_demo`,
+and the `psi` smoke binary; secretbox mode remains available in the library and
+is exercised by the tests and `psi_bench`.

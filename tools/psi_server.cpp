@@ -126,13 +126,13 @@ std::vector<Unit> parseUnits(const std::string& body, const std::string& key) {
     return units;
 }
 
-std::string buildResponseJson(const BobInitialMessage& bobMessage,
+std::string buildResponseJson(const BobInitialTagMessage& bobMessage,
                               const AliceResponseMessage& aliceMessage,
                               const BobResponseMessage& bobResponse,
                               const std::vector<DecryptedUnit>& decrypted,
                               const std::array<double, 4>& timingsMs) {
     std::ostringstream oss;
-    oss << "{\"bob_message\":" << serializeBobEncryptedMessageJson(bobMessage.units)
+    oss << "{\"bob_message\":" << serializeBobTagMessageJson(bobMessage.tags)
         << ",\"alice_message\":" << serializeAliceBlindedMessageJson(aliceMessage.values)
         << ",\"bob_response\":" << serializeBobTransformedMessageJson(bobResponse.values)
         << ",\"decrypted\":[";
@@ -155,16 +155,18 @@ std::string handlePsiRequest(const std::string& body) {
 
     std::array<double, 4> timings{};
 
+    // Tag mode is the default: one-way membership tags instead of ciphertexts,
+    // O(A) finalisation, fixed-size wire entries.
     const auto bobMessage = [&]() {
         const auto start = std::chrono::steady_clock::now();
-        auto msg = bobCreateInitialMessage(bobUnits);
+        auto msg = bobCreateInitialTagMessage(bobUnits);
         timings[0] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
         return msg;
     }();
 
     const auto aliceMessage = [&]() {
         const auto start = std::chrono::steady_clock::now();
-        auto msg = aliceProcessBobMessage(bobMessage.serialized, aliceUnits);
+        auto msg = aliceProcessBobTagMessage(bobMessage.serialized, aliceUnits);
         timings[1] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
         return msg;
     }();
@@ -178,7 +180,7 @@ std::string handlePsiRequest(const std::string& body) {
 
     const auto decrypted = [&]() {
         const auto start = std::chrono::steady_clock::now();
-        auto result = aliceFinalizeIntersection(bobResponse.serialized, aliceMessage.state);
+        auto result = aliceFinalizeIntersectionTags(bobResponse.serialized, aliceMessage.state);
         timings[3] = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
         return result;
     }();

@@ -18,7 +18,8 @@ adding HTTP networking, deterministic tests, and timing instrumentation. See
       now detected via the secretbox auth tag (2026-07-27)
 - [x] Key-tag protocol mode: Bob sends BLAKE3 membership tags instead of ciphertexts;
       finalisation becomes O(A) hash lookups instead of O(A x B) trial decryptions, and
-      fixed 32-byte tags close the element-length leak (2026-07-27)
+      fixed 32-byte tags close the element-length leak. Default for `psi_server`,
+      `psi_demo`, and the demo UI (2026-07-27)
 - [x] `psi_bench` tool comparing both modes; at 5,000 units/side tag-mode finalise is
       ~21x faster (see `reports/psi_bench_2026-07-27.md`)
 - [x] Threat model documented in README (honest-but-curious)
@@ -37,7 +38,6 @@ adding HTTP networking, deterministic tests, and timing instrumentation. See
 
 - [ ] Benchmark C++ vs JS worker latency on larger datasets (C++ mode-vs-mode
       benchmarking done via `psi_bench`; the JS comparison remains)
-- [ ] Decide whether tag mode becomes the default for `psi_server` and the demo UI
 - [ ] Multi-threading / SIMD for BLAKE3 (performance, post-correctness)
 
 ## Backlog
