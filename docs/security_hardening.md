@@ -2,11 +2,14 @@
 
 _Status: implemented 2026-07-27 (both issues fixed via Option A, ristretto255) · written 2026-07-27_
 
-This document addresses the two implementation-level security issues identified in the
-external review note (`upstream-note-edward-psi.md`): cleartext elements on the wire
-(issue 1) and the known-discrete-log `hashToGroup` construction (issue 2). The third
-issue raised there, the honest-but-curious trust model, is a protocol-design matter and
-is tracked separately in the ROADMAP backlog under dispute resolution.
+This document addresses the two implementation-level security issues reported by the
+authors of https://github.com/xaya/fog-of-war (a project that adapted this PSI approach)
+in GitHub issues #1 and #2, which they raised alongside a fuller private review:
+cleartext elements on the wire (issue 1, GitHub issue #2) and the known-discrete-log
+`hashToGroup` construction (issue 2, GitHub issue #1). The third topic from that review,
+the honest-but-curious trust model, is a protocol-design matter and is tracked
+separately in the ROADMAP backlog under dispute resolution (see
+`docs/dispute_resolution_notes.md`).
 
 Both issues also exist in the JavaScript reference implementation
 (`reference/psiCalculation.js`), which this port deliberately mirrors. Fixing them
