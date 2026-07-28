@@ -13,7 +13,10 @@ The project follows the same four-phase workflow as the JavaScript demo ([psi-de
 - Phase-oriented PSI API (`psi_protocol`) with both newline and JSON serialization helpers.
 - `psi_demo`: CLI walkthrough of sample units, printing plaintext values, serialized payloads, and per-phase timings.
 - `psi_server`: HTTP service exposing `POST /psi`, returning JSON payloads and timing metrics ready for React integration.
-- GoogleTest suite covering helper behaviour, serialization round-trips, PSI flows, and error handling.
+- Multi-level mesh cascade (`src/mesh_psi.h`): coarse-to-fine tag-mode PSI over grid cells; see `docs/mesh_cascade.md`.
+- Commit-reveal dispute layer, phase 1 (`docs/commit_reveal_spec.md`): opt-in deterministic derivation, seed-derived dummy padding, and signed transcripts. `psi_session` records a committed two-direction demo turn; `psi_audit` replays the transcript against the accused party's opening and prints a single HONEST / FRAUD / SIGNATURE-INVALID verdict.
+- `psi_bench` and `psi_mesh_bench`: benchmarks comparing tag vs secretbox mode and cascade vs flat fine-grid PSI.
+- GoogleTest suite covering helper behaviour, serialization round-trips, PSI flows, and error handling; run on every push via GitHub Actions CI.
 - Multi-level grid encoding for visibility cells, mirroring the original JavaScript frontend.
 - Web Worker-friendly HTTP layer so browsers stay responsive while the PSI backend runs in C++.
 
